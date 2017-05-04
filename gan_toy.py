@@ -29,6 +29,7 @@ LAMBDA = .1  # Smaller lambda seems to help for toy tasks specifically
 CRITIC_ITERS = 5  # How many critic iterations per generator iteration
 BATCH_SIZE = 256  # Batch size
 ITERS = 100000  # how many generator iterations to train for
+use_cuda = True
 
 
 class Generator(nn.Module):
@@ -179,5 +180,12 @@ netG = Generator()
 netD = Discriminator()
 netD.apply(weights_init)
 netG.apply(weights_init)
+print netG
+print netD
+
+if use_cuda:
+    netD = netD.cuda()
+    netG = netG.cuda()
+
 print netG
 print netD
