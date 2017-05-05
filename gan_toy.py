@@ -48,11 +48,10 @@ class Generator(nn.Module):
         )
         self.main = main
 
-    def forward(self, n_samples, real_data):
+    def forward(self, noise):
         if FIXED_GENERATOR:
-            return real_data + torch.randn(*real_data.size())
+            return noise
         else:
-            noise = torch.randn(*[n_samples, 2])
             output = self.main(noise)
             return output
 
@@ -88,7 +87,7 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
-
+frame_index = [0]
 def generate_image(true_dist):
     """
     Generates and saves a plot of the true distribution, the generator, and the
@@ -187,5 +186,59 @@ if use_cuda:
     netD = netD.cuda()
     netG = netG.cuda()
 
-print netG
-print netD
+optimizerD = optim.Adam(netD.parameters(), lr=1e-4, betas=(0.5, 0.9))
+optimizerG = optim.Adam(netG.parameters(), lr=1e-4, betas=(0.5, 0.9))
+
+one = torch.FloatTensor([1])
+mone = one * -1
+
+data = inf_train_gen()
+
+for iteration in xrange(ITERS):
+    ############################
+    # (1) Update D network
+    ###########################
+    for p in netD.parameters():  # reset requires_grad
+        p.requires_grad = True  # they are set to False below in netG update
+
+    for iter_d in xrange(CRITIC_ITERS):
+        _data = data.next()
+        real_data = torch.Tensor(_data)
+        if use_cuda:
+            real_data = real_data.cuda()
+        real_data_v = autograd.Variable(real_data)
+
+        netD.zero_grad()
+
+        # train with real
+        errD_real = netD(real_data_v)
+        errD_real.backward(mone)
+
+        # train with fake
+        noise = torch.randn(BATCH_SIZE, 2)
+        noisev = autograd.Variable(noise, volatile=True)  # totally freeze netG
+        fake = autograd.Variable(netG(noisev).data)
+        inputv = fake
+        errD_fake = netD(inputv)
+        errD_fake.backward(one)
+        errD = errD_fake - errD_real
+        optimizerD.step()
+
+    ############################
+    # (2) Update G network
+    ###########################
+    for p in netD.parameters():
+        p.requires_grad = False  # to avoid computation
+    netG.zero_grad()
+
+    noise = torch.randn(BATCH_SIZE, 2)
+    noisev = autograd.Variable(noise)
+    fake = netG(noisev)
+    errG = netD(fake)
+    errG.backward(mone)
+    optimizerG.step()
+
+    print errD, errG
+
+    # if iteration % 100 == 99:
+    #     generate_image(_data)
