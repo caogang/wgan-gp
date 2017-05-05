@@ -199,7 +199,7 @@ def calc_gradient_penalty(netD, real_data, fake_data):
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
                               grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(
                                   disc_interpolates.size()),
-                              create_graph=True, only_inputs=True)[0]
+                              create_graph=True, retain_graph=True, only_inputs=True)[0]
 
     for p in netD.parameters():
         print p.grad
