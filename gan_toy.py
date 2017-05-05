@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sklearn.datasets
 
+import tflib as lib
+import tflib.plot
+
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
@@ -74,7 +77,7 @@ class Discriminator(nn.Module):
 
     def forward(self, inputs):
         output = self.main(inputs)
-        return output.view(-1).mean()
+        return output.view(-1)
 
 
 # custom weights initialization called on netG and netD
@@ -175,6 +178,21 @@ def inf_train_gen():
             yield dataset
 
 
+def calc_gradient_penalty(netD, real_data, fake_data):
+    alpha = torch.rand(BATCH_SIZE, 1)
+    interpolates = alpha * real_data + ((1 - alpha) * fake_data)
+    if use_cuda:
+        interpolates = interpolates.cuda()
+    interpolates = autograd.Variable(interpolates)
+
+    disc_interpolates = netD(interpolates)
+    gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
+                              grad_outputs=torch.ones(1), create_graph=True, only_inputs=True)[0]
+    print gradients.size()
+    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * LAMBDA
+    return gradient_penalty
+
+
 netG = Generator()
 netD = Discriminator()
 netD.apply(weights_init)
@@ -214,8 +232,9 @@ for iteration in xrange(ITERS):
         netD.zero_grad()
 
         # train with real
-        errD_real = netD(real_data_v)
-        errD_real.backward(mone)
+        D_real = netD(real_data_v)
+        D_real = D_real.mean()
+        D_real.backward(mone)
 
         # train with fake
         noise = torch.randn(BATCH_SIZE, 2)
@@ -224,9 +243,15 @@ for iteration in xrange(ITERS):
         noisev = autograd.Variable(noise, volatile=True)  # totally freeze netG
         fake = autograd.Variable(netG(noisev).data)
         inputv = fake
-        errD_fake = netD(inputv)
-        errD_fake.backward(one)
-        errD = errD_fake - errD_real
+        D_fake = netD(inputv)
+        D_fake = D_fake.mean()
+        D_fake.backward(one)
+
+        # train with gradient penalty
+        gradient_penalty = calc_gradient_penalty(netD, real_data.data, fake.data)
+        gradient_penalty.backward(one)
+
+        D = D_fake - D_real + gradient_penalty
         optimizerD.step()
 
     ############################
@@ -241,11 +266,17 @@ for iteration in xrange(ITERS):
         noise = noise.cuda()
     noisev = autograd.Variable(noise)
     fake = netG(noisev)
-    errG = netD(fake)
-    errG.backward(mone)
+    G = netD(fake)
+    G = G.mean()
+    G.backward(mone)
     optimizerG.step()
 
-    print errD, errG
+    # print D, G
 
-    # if iteration % 100 == 99:
-    #     generate_image(_data)
+    # Write logs and save samples
+    lib.plot.plot('disc cost', D)
+    lib.plot.plot('gen cost', G)
+    if iteration % 100 == 99:
+        lib.plot.flush()
+        # generate_image(_data)
+    lib.plot.tick()
