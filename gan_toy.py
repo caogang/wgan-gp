@@ -183,21 +183,28 @@ def calc_gradient_penalty(netD, real_data, fake_data):
     alpha = alpha.expand(real_data.size())
     alpha = alpha.cuda() if use_cuda else alpha
 
+    # print real_data[0]
+    # print fake_data[0]
+    # print alpha[0]
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
+    # print interpolates[0]
     if use_cuda:
         interpolates = interpolates.cuda()
     interpolates = autograd.Variable(interpolates, requires_grad=True)
 
     disc_interpolates = netD(interpolates)
+    # print disc_interpolates
+    #     print disc_interpolates.size(), interpolates.size()
 
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(BATCH_SIZE).cuda() if use_cuda else torch.ones(BATCH_SIZE),
+                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(
+                                  disc_interpolates.size()),
                               create_graph=True, only_inputs=True)[0]
 
-    # autograd.grad(outputs=gradients, inputs=[],
-    #                       grad_outputs=torch.ones(gradients[0].size()).cuda() if use_cuda else torch.ones(gradients[0].size()),
-    #                       only_inputs=False)
-    #gradients.mean().backward()
+    for p in netD.parameters():
+        print p.grad
+    # print gradients
+    # print (gradients.norm(2, dim=1) - 1) ** 2
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * LAMBDA
     return gradient_penalty
 
@@ -258,7 +265,9 @@ for iteration in xrange(ITERS):
 
         # train with gradient penalty
         gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
-        gradient_penalty.backward(one)
+        gradient_penalty.backward()
+        for p in netD.parameters():
+            print p.grad
 
         D = D_fake - D_real + gradient_penalty
         optimizerD.step()
