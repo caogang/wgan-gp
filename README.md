@@ -8,4 +8,4 @@ A recent NVIDIA GPU
 
 # Process
 
-- [ ] gan_toy.py
+- [ ] gan_toy.py(Paused due to that pytorch doesn't support high order gradient of Non-linear Activations)
