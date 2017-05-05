@@ -74,7 +74,7 @@ class Discriminator(nn.Module):
 
     def forward(self, inputs):
         output = self.main(inputs)
-        return output.view(-1)
+        return output.view(-1).mean()
 
 
 # custom weights initialization called on netG and netD
@@ -191,6 +191,9 @@ optimizerG = optim.Adam(netG.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
 one = torch.FloatTensor([1])
 mone = one * -1
+if use_cuda:
+    one = one.cuda()
+    mone = mone.cuda()
 
 data = inf_train_gen()
 
@@ -216,6 +219,8 @@ for iteration in xrange(ITERS):
 
         # train with fake
         noise = torch.randn(BATCH_SIZE, 2)
+        if use_cuda:
+            noise = noise.cuda()
         noisev = autograd.Variable(noise, volatile=True)  # totally freeze netG
         fake = autograd.Variable(netG(noisev).data)
         inputv = fake
@@ -232,6 +237,8 @@ for iteration in xrange(ITERS):
     netG.zero_grad()
 
     noise = torch.randn(BATCH_SIZE, 2)
+    if use_cuda:
+        noise = noise.cuda()
     noisev = autograd.Variable(noise)
     fake = netG(noisev)
     errG = netD(fake)
