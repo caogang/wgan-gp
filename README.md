@@ -8,4 +8,23 @@ A recent NVIDIA GPU
 
 # Process
 
-- [ ] gan_toy.py(Paused due to that pytorch doesn't support high order gradient of Non-linear Activations)
+- [x] gan_toy.py(**Finished** in 2017.5.8)
+- [ ] gan_language.py(Working Progress)
+
+# Results
+
+## Toy Dataset
+
+### **8gaussians** Dataset Training after **99799 generator iterators** 
+
+1. Learning distribution
+
+![8gaussians_99799](results/8gaussians_99799.jpg)
+
+2. Discriminator Objective Function Curve
+
+   ![8gaussians_disc_cost](/Users/marvin/Documents/private/Python Project/wgan-gp/results/8gaussians_disc_cost.jpg)
+
+3. Generator Objective Function Curve
+
+   ![8gaussians_gen_cost](/Users/marvin/Documents/private/Python Project/wgan-gp/results/8gaussians_gen_cost.jpg)
