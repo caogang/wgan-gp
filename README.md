@@ -23,8 +23,8 @@ A recent NVIDIA GPU
 
 2. Discriminator Objective Function Curve
 
-   ![8gaussians_disc_cost](/Users/marvin/Documents/private/Python Project/wgan-gp/results/8gaussians_disc_cost.jpg)
+   ![8gaussians_disc_cost](results/8gaussians_disc_cost.jpg)
 
 3. Generator Objective Function Curve
 
-   ![8gaussians_gen_cost](/Users/marvin/Documents/private/Python Project/wgan-gp/results/8gaussians_gen_cost.jpg)
+   ![8gaussians_gen_cost](results/8gaussians_gen_cost.jpg)
