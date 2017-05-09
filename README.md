@@ -18,3 +18,7 @@ A recent NVIDIA GPU
 
 - [Toy Dataset](results/toy/)
 - …...
+
+# Acknowledge
+
+Based on the tensorflow implementation [igul222/improved_wgan_training](https://github.com/igul222/improved_wgan_training)
