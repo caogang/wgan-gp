@@ -52,9 +52,9 @@ class Generator(nn.Module):
         )
         self.main = main
 
-    def forward(self, noise):
+    def forward(self, noise, real_data):
         if FIXED_GENERATOR:
-            return noise
+            return noise + real_data
         else:
             output = self.main(noise)
             return output
@@ -105,16 +105,17 @@ def generate_image(true_dist):
     points[:, :, 1] = np.linspace(-RANGE, RANGE, N_POINTS)[None, :]
     points = points.reshape((-1, 2))
 
-    noise = torch.randn(BATCH_SIZE, 2)
-    if use_cuda:
-        noise = noise.cuda()
-    noisev = autograd.Variable(noise, volatile=True)
-    samples = netG(noisev).cpu().data.numpy()
-
     points_v = autograd.Variable(torch.Tensor(points), volatile=True)
     if use_cuda:
         points_v = points_v.cuda()
     disc_map = netD(points_v).cpu().data.numpy()
+
+    noise = torch.randn(BATCH_SIZE, 2)
+    if use_cuda:
+        noise = noise.cuda()
+    noisev = autograd.Variable(noise, volatile=True)
+    true_dist_v = autograd.Variable(torch.Tensor(true_dist).cuda() if use_cuda else torch.Tensor(true_dist))
+    samples = netG(noisev, true_dist_v).cpu().data.numpy()
 
     plt.clf()
 
@@ -122,7 +123,8 @@ def generate_image(true_dist):
     plt.contour(x, y, disc_map.reshape((len(x), len(y))).transpose())
 
     plt.scatter(true_dist[:, 0], true_dist[:, 1], c='orange', marker='+')
-    plt.scatter(samples[:, 0], samples[:, 1], c='green', marker='+')
+    if not FIXED_GENERATOR:
+        plt.scatter(samples[:, 0], samples[:, 1], c='green', marker='+')
 
     plt.savefig('frame' + str(frame_index[0]) + '.jpg')
     frame_index[0] += 1
@@ -256,7 +258,7 @@ for iteration in xrange(ITERS):
         if use_cuda:
             noise = noise.cuda()
         noisev = autograd.Variable(noise, volatile=True)  # totally freeze netG
-        fake = autograd.Variable(netG(noisev).data)
+        fake = autograd.Variable(netG(noisev, real_data_v).data)
         inputv = fake
         D_fake = netD(inputv)
         D_fake = D_fake.mean()
@@ -269,26 +271,34 @@ for iteration in xrange(ITERS):
         D = D_fake - D_real + gradient_penalty
         optimizerD.step()
 
-    ############################
-    # (2) Update G network
-    ###########################
-    for p in netD.parameters():
-        p.requires_grad = False  # to avoid computation
-    netG.zero_grad()
+    if not FIXED_GENERATOR:
+        ############################
+        # (2) Update G network
+        ###########################
+        for p in netD.parameters():
+            p.requires_grad = False  # to avoid computation
+        netG.zero_grad()
 
-    noise = torch.randn(BATCH_SIZE, 2)
-    if use_cuda:
-        noise = noise.cuda()
-    noisev = autograd.Variable(noise)
-    fake = netG(noisev)
-    G = netD(fake)
-    G = G.mean()
-    G.backward(mone)
-    optimizerG.step()
+        _data = data.next()
+        real_data = torch.Tensor(_data)
+        if use_cuda:
+            real_data = real_data.cuda()
+        real_data_v = autograd.Variable(real_data)
+
+        noise = torch.randn(BATCH_SIZE, 2)
+        if use_cuda:
+            noise = noise.cuda()
+        noisev = autograd.Variable(noise)
+        fake = netG(noisev, real_data_v)
+        G = netD(fake)
+        G = G.mean()
+        G.backward(mone)
+        optimizerG.step()
 
     # Write logs and save samples
     lib.plot.plot('disc cost', D.cpu().data.numpy())
-    lib.plot.plot('gen cost', G.cpu().data.numpy())
+    if not FIXED_GENERATOR:
+        lib.plot.plot('gen cost', G.cpu().data.numpy())
     if iteration % 100 == 99:
         lib.plot.flush()
         generate_image(_data)
