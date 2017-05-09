@@ -31,7 +31,7 @@ FIXED_GENERATOR = False  # whether to hold the generator fixed at real data plus
 LAMBDA = .1  # Smaller lambda seems to help for toy tasks specifically
 CRITIC_ITERS = 5  # How many critic iterations per generator iteration
 BATCH_SIZE = 256  # Batch size
-ITERS = 100000  # how many generator iterations to train for
+ITERS = 300000  # how many generator iterations to train for
 use_cuda = True
 
 # ==================Definition Start======================
@@ -126,7 +126,8 @@ def generate_image(true_dist):
     if not FIXED_GENERATOR:
         plt.scatter(samples[:, 0], samples[:, 1], c='green', marker='+')
 
-    plt.savefig('frame' + str(frame_index[0]) + '.jpg')
+    plt.savefig('tmp/' + DATASET + '/' + 'frame' + str(frame_index[0]) + '.jpg')
+
     frame_index[0] += 1
 
 
@@ -269,6 +270,7 @@ for iteration in xrange(ITERS):
         gradient_penalty.backward()
 
         D = D_fake - D_real + gradient_penalty
+        D_cost = -D
         optimizerD.step()
 
     if not FIXED_GENERATOR:
@@ -293,12 +295,13 @@ for iteration in xrange(ITERS):
         G = netD(fake)
         G = G.mean()
         G.backward(mone)
+        G_cost = -G
         optimizerG.step()
 
     # Write logs and save samples
-    lib.plot.plot('disc cost', D.cpu().data.numpy())
+    lib.plot.plot('tmp/' + DATASET + '/' + 'disc cost', D_cost.cpu().data.numpy())
     if not FIXED_GENERATOR:
-        lib.plot.plot('gen cost', G.cpu().data.numpy())
+        lib.plot.plot('tmp/' + DATASET + '/' + 'gen cost', G_cost.cpu().data.numpy())
     if iteration % 100 == 99:
         lib.plot.flush()
         generate_image(_data)
