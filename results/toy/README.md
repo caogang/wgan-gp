@@ -1,18 +1,16 @@
 # Toy Dataset
 
-[TOC]
-
 ## **8gaussians** Dataset Training 
 
 - orange is the **real data**
 - green is the **generated data**
 - Total Iterations : **300000** generator iters
 
-### Discriminator Objective Function Curve
+### Discriminator Cost Function Curve
 
 ![8gaussians_disc_cost](../../imgs/8gaussians_disc_cost.jpg)
 
-### Generator Objective Function Curve
+### Generator  Cost Function Curve
 
 ![8gaussians_gen_cost](../../imgs/8gaussians_gen_cost.jpg)
 
@@ -26,11 +24,11 @@
 - green is the **generated data**
 - Total Iterations : **300000** generator iters
 
-### Discriminator Objective Function Curve
+### Discriminator  Cost Function Curve
 
 ![8gaussians_disc_cost](../../imgs/25gaussians_disc_cost.jpg)
 
-### Generator Objective Function Curve
+### Generator  Cost Function Curve
 
 ![8gaussians_gen_cost](../../imgs/25gaussians_gen_cost.jpg)
 
@@ -44,11 +42,11 @@
 - green is the **generated data**
 - Total Iterations : **300000** generator iters
 
-### Discriminator Objective Function Curve
+### Discriminator  Cost Function Curve
 
 ![8gaussians_disc_cost](../../imgs/swissroll_disc_cost.jpg)
 
-### Generator Objective Function Curve
+### Generator  Cost Function Curve
 
 ![8gaussians_gen_cost](../../imgs/swissroll_gen_cost.jpg)
 
