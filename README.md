@@ -17,7 +17,24 @@ A recent NVIDIA GPU
 # Results
 
 - [Toy Dataset](results/toy/)
-- …...
+
+  Some Sample Result, you can refer to the [results/toy/](results/toy/) folder for **details**.
+
+  - **8gaussians 154500 iteration**
+
+  ![frame1612](imgs/8gaussians_frame1545.jpg)
+
+  - **25gaussians 48500 iteration**
+
+    ![frame485](imgs/25gaussians_frame485.jpg)
+
+  - **swissroll 69400 iteration**
+
+  ![frame694](imgs/swissroll_frame694.jpg)
+
+  ​
+
+  ​
 
 # Acknowledge
 
