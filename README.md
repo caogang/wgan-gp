@@ -9,9 +9,15 @@ A recent NVIDIA GPU
 # Progress
 
 - [x] gan_toy.py : Toy datasets (8 Gaussians, 25 Gaussians, Swiss Roll).(**Finished** in 2017.5.8)
-- [ ] gan_language.py : Character-level language model (Paused due to that `ConvBackward is not differentiable`, Problem is under solving)
+
+- [x] gan_language.py : Character-level language model (**Running Results while Finished** in 2017.5.10 using **nn.Linear** instead of **nn.Conv1d**)
+
+> Due to that `ConvBackward is not differentiable`, Problem is under solving. When the features are supported, i will change it back.
+
 - [ ] gan_mnist.py : MNIST
+
 - [ ] gan_64x64.py: 64x64 architectures
+
 - [ ] gan_cifar.py: CIFAR-10
 
 # Results
