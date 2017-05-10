@@ -67,9 +67,9 @@ class ResBlock(nn.Module):
 
         self.res_block = nn.Sequential(
             nn.ReLU(True),
-            nn.Conv1d(DIM, DIM, 5, padding=2),
+            nn.Linear(DIM, DIM)#nn.Conv1d(DIM, DIM, 5, padding=2),
             nn.ReLU(True),
-            nn.Conv1d(DIM, DIM, 5, padding=2),
+            nn.Linear(DIM, DIM)#nn.Conv1d(DIM, DIM, 5, padding=2),
         )
 
     def forward(self, input):
@@ -89,20 +89,16 @@ class Generator(nn.Module):
             ResBlock(),
             ResBlock(),
         )
-        self.conv1 = nn.Conv1d(DIM, len(charmap), 1)
+        self.fc2 = nn.Linear(DIM, len(charmap))
         self.softmax = nn.Softmax()
 
     def forward(self, noise):
         output = self.fc1(noise)
-        output = output.view(-1, DIM, SEQ_LEN)
+        output = output.view(-1, DIM) # (BATCH_SIZE * SEQ_LEN, DIM)
         output = self.block(output)
-        output = self.conv1(output)
-        output = output.transpose(1, 2)
-        shape = output.size()
-        output = output.contiguous()
-        output = output.view(BATCH_SIZE*SEQ_LEN, -1)
+        output = self.fc2(output)
         output = self.softmax(output)
-        return output.view(shape)
+        return output # (BATCH_SIZE * SEQ_LEN, len(charmap))
 
 class Discriminator(nn.Module):
 
@@ -117,11 +113,10 @@ class Discriminator(nn.Module):
             ResBlock(),
             ResBlock(),
         )
-        self.conv1 = nn.Conv1d(len(charmap), DIM, 1)
+        self.fc2 = nn.Linear(len(charmap), DIM)
 
     def forward(self, input):
-        output = input.transpose(1, 2)
-        output = self.conv1(output)
+        output = self.fc2(output)
         output = self.block(output)
         output = output.view(-1, SEQ_LEN*DIM)
         output = self.fc1(output)
@@ -205,7 +200,7 @@ for iteration in xrange(ITERS):
         D_real = D_real.mean()
         print D_real
         # TODO: Waiting for the bug fix from pytorch
-        #D_real.backward(mone)
+        D_real.backward(mone)
 
         # train with fake
         noise = torch.randn(BATCH_SIZE, 128)
@@ -217,7 +212,7 @@ for iteration in xrange(ITERS):
         D_fake = netD(inputv)
         D_fake = D_fake.mean()
         # TODO: Waiting for the bug fix from pytorch
-        # D_fake.backward(one)
+        D_fake.backward(one)
 
         # train with gradient penalty
         gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
@@ -226,6 +221,7 @@ for iteration in xrange(ITERS):
         D = D_fake - D_real + gradient_penalty
         D_cost = -D
         optimizerD.step()
+        pause
 
     ############################
     # (2) Update G network
