@@ -37,7 +37,7 @@ CRITIC_ITERS = 10 # How many critic iterations per generator iteration. We
                   # use 10 for the results in the paper, but 5 should work fine
                   # as well.
 LAMBDA = 10 # Gradient penalty lambda hyperparameter.
-MAX_N_EXAMPLES = 10000#10000000 # Max number of data examples to load. If data loading
+MAX_N_EXAMPLES = 10000000#10000000 # Max number of data examples to load. If data loading
                           # is too slow or takes too much RAM, you can decrease
                           # this (at the expense of having less training data).
 
@@ -67,9 +67,9 @@ class ResBlock(nn.Module):
 
         self.res_block = nn.Sequential(
             nn.ReLU(True),
-            nn.Linear(DIM, DIM)#nn.Conv1d(DIM, DIM, 5, padding=2),
+            nn.Linear(DIM, DIM),#nn.Conv1d(DIM, DIM, 5, padding=2),
             nn.ReLU(True),
-            nn.Linear(DIM, DIM)#nn.Conv1d(DIM, DIM, 5, padding=2),
+            nn.Linear(DIM, DIM),#nn.Conv1d(DIM, DIM, 5, padding=2),
         )
 
     def forward(self, input):
@@ -116,6 +116,7 @@ class Discriminator(nn.Module):
         self.fc2 = nn.Linear(len(charmap), DIM)
 
     def forward(self, input):
+        output = input.view(-1, len(charmap))
         output = self.fc2(output)
         output = self.block(output)
         output = output.view(-1, SEQ_LEN*DIM)
@@ -133,7 +134,6 @@ def inf_train_gen():
             )
 
 def calc_gradient_penalty(netD, real_data, fake_data):
-    print real_data.size()
     alpha = torch.rand(BATCH_SIZE, 1, 1)
     alpha = alpha.expand(real_data.size())
     alpha = alpha.cuda() if use_cuda else alpha
@@ -154,6 +154,26 @@ def calc_gradient_penalty(netD, real_data, fake_data):
 
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * LAMBDA
     return gradient_penalty
+
+def generate_samples(netG):
+    noise = torch.randn(BATCH_SIZE, 128)
+    if use_cuda:
+        noise = noise.cuda()
+    noisev = autograd.Variable(noise, volatile=True)
+    samples = netG(noisev)
+    samples = samples.view(-1, SEQ_LEN, len(charmap))
+    # print samples.size()
+
+    samples = samples.cpu().data.numpy()
+
+    samples = np.argmax(samples, axis=2)
+    decoded_samples = []
+    for i in xrange(len(samples)):
+        decoded = []
+        for j in xrange(len(samples[i])):
+            decoded.append(inv_charmap[samples[i][j]])
+        decoded_samples.append(tuple(decoded))
+    return decoded_samples
 
 # ==================Definition End======================
 
@@ -177,7 +197,17 @@ if use_cuda:
 
 data = inf_train_gen()
 
+# During training we monitor JS divergence between the true & generated ngram
+# distributions for n=1,2,3,4. To get an idea of the optimal values, we
+# evaluate these statistics on a held-out set first.
+true_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines[10*BATCH_SIZE:], tokenize=False) for i in xrange(4)]
+validation_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines[:10*BATCH_SIZE], tokenize=False) for i in xrange(4)]
+for i in xrange(4):
+    print "validation set JSD for n={}: {}".format(i+1, true_char_ngram_lms[i].js_with(validation_char_ngram_lms[i]))
+true_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines, tokenize=False) for i in xrange(4)]
+
 for iteration in xrange(ITERS):
+    start_time = time.time()
     ############################
     # (1) Update D network
     ###########################
@@ -187,7 +217,7 @@ for iteration in xrange(ITERS):
     for iter_d in xrange(CRITIC_ITERS):
         _data = data.next()
         data_one_hot = one_hot.transform(_data.reshape(-1, 1)).toarray().reshape(BATCH_SIZE, -1, len(charmap))
-        print data_one_hot.shape
+        #print data_one_hot.shape
         real_data = torch.Tensor(data_one_hot)
         if use_cuda:
             real_data = real_data.cuda()
@@ -198,7 +228,7 @@ for iteration in xrange(ITERS):
         # train with real
         D_real = netD(real_data_v)
         D_real = D_real.mean()
-        print D_real
+        # print D_real
         # TODO: Waiting for the bug fix from pytorch
         D_real.backward(mone)
 
@@ -221,7 +251,6 @@ for iteration in xrange(ITERS):
         D = D_fake - D_real + gradient_penalty
         D_cost = -D
         optimizerD.step()
-        pause
 
     ############################
     # (2) Update G network
@@ -242,107 +271,25 @@ for iteration in xrange(ITERS):
     optimizerG.step()
 
     # Write logs and save samples
-    lib.plot.plot('tmp/' + DATASET + '/' + 'disc cost', D_cost.cpu().data.numpy())
-    if not FIXED_GENERATOR:
-        lib.plot.plot('tmp/' + DATASET + '/' + 'gen cost', G_cost.cpu().data.numpy())
+    lib.plot.plot('time', time.time() - start_time)
+    lib.plot.plot('train disc cost', D_cost.cpu().data.numpy())
+    lib.plot.plot('train gen cost', G_cost.cpu().data.numpy())
+
+    if iteration % 100 == 99:
+        samples = []
+        for i in xrange(10):
+            samples.extend(generate_samples(netG))
+
+        for i in xrange(4):
+            lm = language_helpers.NgramLanguageModel(i+1, samples, tokenize=False)
+            lib.plot.plot('js{}'.format(i+1), lm.js_with(true_char_ngram_lms[i]))
+
+        with open('samples_{}.txt'.format(iteration), 'w') as f:
+            for s in samples:
+                s = "".join(s)
+                f.write(s + "\n")
+
     if iteration % 100 == 99:
         lib.plot.flush()
-        generate_image(_data)
+
     lib.plot.tick()
-
-# TODO: Delete all this
-
-real_inputs_discrete = tf.placeholder(tf.int32, shape=[BATCH_SIZE, SEQ_LEN])
-real_inputs = tf.one_hot(real_inputs_discrete, len(charmap))
-fake_inputs = Generator(BATCH_SIZE)
-fake_inputs_discrete = tf.argmax(fake_inputs, fake_inputs.get_shape().ndims-1)
-
-disc_real = Discriminator(real_inputs)
-disc_fake = Discriminator(fake_inputs)
-
-disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
-gen_cost = -tf.reduce_mean(disc_fake)
-
-# WGAN lipschitz-penalty
-alpha = tf.random_uniform(
-    shape=[BATCH_SIZE,1,1],
-    minval=0.,
-    maxval=1.
-)
-differences = fake_inputs - real_inputs
-interpolates = real_inputs + (alpha*differences)
-gradients = tf.gradients(Discriminator(interpolates), [interpolates])[0]
-slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1,2]))
-gradient_penalty = tf.reduce_mean((slopes-1.)**2)
-disc_cost += LAMBDA*gradient_penalty
-
-gen_params = lib.params_with_name('Generator')
-disc_params = lib.params_with_name('Discriminator')
-
-gen_train_op = tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(gen_cost, var_list=gen_params)
-disc_train_op = tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(disc_cost, var_list=disc_params)
-
-
-
-# During training we monitor JS divergence between the true & generated ngram
-# distributions for n=1,2,3,4. To get an idea of the optimal values, we
-# evaluate these statistics on a held-out set first.
-true_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines[10*BATCH_SIZE:], tokenize=False) for i in xrange(4)]
-validation_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines[:10*BATCH_SIZE], tokenize=False) for i in xrange(4)]
-for i in xrange(4):
-    print "validation set JSD for n={}: {}".format(i+1, true_char_ngram_lms[i].js_with(validation_char_ngram_lms[i]))
-true_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines, tokenize=False) for i in xrange(4)]
-
-with tf.Session() as session:
-
-    session.run(tf.initialize_all_variables())
-
-    def generate_samples():
-        samples = session.run(fake_inputs)
-        samples = np.argmax(samples, axis=2)
-        decoded_samples = []
-        for i in xrange(len(samples)):
-            decoded = []
-            for j in xrange(len(samples[i])):
-                decoded.append(inv_charmap[samples[i][j]])
-            decoded_samples.append(tuple(decoded))
-        return decoded_samples
-
-    gen = inf_train_gen()
-
-    for iteration in xrange(ITERS):
-        start_time = time.time()
-
-        # Train generator
-        if iteration > 0:
-            _ = session.run(gen_train_op)
-
-        # Train critic
-        for i in xrange(CRITIC_ITERS):
-            _data = gen.next()
-            _disc_cost, _ = session.run(
-                [disc_cost, disc_train_op],
-                feed_dict={real_inputs_discrete:_data}
-            )
-
-        lib.plot.plot('time', time.time() - start_time)
-        lib.plot.plot('train disc cost', _disc_cost)
-
-        if iteration % 100 == 99:
-            samples = []
-            for i in xrange(10):
-                samples.extend(generate_samples())
-
-            for i in xrange(4):
-                lm = language_helpers.NgramLanguageModel(i+1, samples, tokenize=False)
-                lib.plot.plot('js{}'.format(i+1), lm.js_with(true_char_ngram_lms[i]))
-
-            with open('samples_{}.txt'.format(iteration), 'w') as f:
-                for s in samples:
-                    s = "".join(s)
-                    f.write(s + "\n")
-
-        if iteration % 100 == 99:
-            lib.plot.flush()
-
-        lib.plot.tick()
