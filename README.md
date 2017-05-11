@@ -44,4 +44,5 @@ A recent NVIDIA GPU
 
 # Acknowledge
 
-Based on the tensorflow implementation [igul222/improved_wgan_training](https://github.com/igul222/improved_wgan_training)
+Based on the implementation [igul222/improved_wgan_training](https://github.com/igul222/improved_wgan_training)
+[martinarjovsky/WassersteinGAN](https://github.com/martinarjovsky/WassersteinGAN)
