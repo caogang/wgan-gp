@@ -16,15 +16,13 @@ import tflib.mnist
 import tflib.plot
 
 import torch
+import torch.autograd as autograd
 import torch.nn as nn
-import torch.nn.parallel
-import torch.backends.cudnn as cudnn
+import torch.nn.functional as F
 import torch.optim as optim
-import torch.utils.data
-from torch.autograd import Variable
 
-import models.dcgan as dcgan
-import models.mlp as mlp
+torch.manual_seed(1)
+use_cuda = torch.cuda.is_available()
 
 DIM = 64 # Model dimensionality
 BATCH_SIZE = 50 # Batch size
@@ -52,7 +50,7 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(2*DIM, DIM, 5),
             nn.ReLU(True),
         )
-        deconv_out = nn.ConvTranspose2d(DIM, 1, 5)
+        deconv_out = nn.ConvTranspose2d(DIM, 1, 8, stride=2)
 
         self.block1 = block1
         self.block2 = block2
@@ -63,11 +61,16 @@ class Generator(nn.Module):
     def forward(self, input):
         output = self.preprocess(input)
         output = output.view(-1, 4*DIM, 4, 4)
+        #print output.size()
         output = self.block1(output)
+        #print output.size()
         output = output[:, :, :7, :7]
+        #print output.size()
         output = self.block2(output)
+        #print output.size()
         output = self.deconv_out(output)
         output = self.sigmoid(output)
+        #print output.size()
         return output.view(-1, OUTPUT_DIM)
 
 # TODO: Replace this using CNN once pytorch is supported
@@ -76,8 +79,11 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         main = nn.Sequential(
-            # Z goes into a linear of size: ndf
             nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
+            nn.ReLU(True),
+            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            nn.ReLU(True),
+            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
             nn.ReLU(True),
             nn.Linear(4*4*4*DIM, 4*4*4*DIM),
             nn.ReLU(True),
@@ -96,14 +102,14 @@ def generate_image(frame, netG):
         noise = noise.cuda()
     noisev = autograd.Variable(noise, volatile=True)
     samples = netG(noisev)
-    samples = samples.view(128, 28, 28)
+    samples = samples.view(BATCH_SIZE, 28, 28)
     # print samples.size()
 
     samples = samples.cpu().data.numpy()
 
     lib.save_images.save_images(
         samples,
-        'samples_{}.png'.format(frame)
+        'tmp/mnist/samples_{}.png'.format(frame)
     )
 
 # Dataset iterator
@@ -114,7 +120,8 @@ def inf_train_gen():
             yield images
 
 def calc_gradient_penalty(netD, real_data, fake_data):
-    alpha = torch.rand(BATCH_SIZE, 1, 1)
+    #print real_data.size()
+    alpha = torch.rand(BATCH_SIZE, 1)
     alpha = alpha.expand(real_data.size())
     alpha = alpha.cuda() if use_cuda else alpha
 
@@ -195,8 +202,7 @@ for iteration in xrange(ITERS):
         gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
         gradient_penalty.backward()
 
-        D = D_fake - D_real + gradient_penalty
-        D_cost = -D
+        D_cost = D_fake - D_real + gradient_penalty
         optimizerD.step()
 
     ############################
@@ -218,9 +224,9 @@ for iteration in xrange(ITERS):
     optimizerG.step()
 
     # Write logs and save samples
-    lib.plot.plot('time', time.time() - start_time)
-    lib.plot.plot('train disc cost', D_cost.cpu().data.numpy())
-    lib.plot.plot('train gen cost', G_cost.cpu().data.numpy())
+    lib.plot.plot('tmp/mnist/time', time.time() - start_time)
+    lib.plot.plot('tmp/mnist/train disc cost', D_cost.cpu().data.numpy())
+    lib.plot.plot('tmp/mnist/train gen cost', G_cost.cpu().data.numpy())
 
     # Calculate dev loss and generate samples every 100 iters
     if iteration % 100 == 99:
@@ -231,10 +237,10 @@ for iteration in xrange(ITERS):
                 imgs = imgs.cuda()
             imgs_v = autograd.Variable(imgs, volatile=True)
 
-            D = netD(real_data_v)
+            D = netD(imgs_v)
             _dev_disc_cost = -D.mean().cpu().data.numpy()
             dev_disc_costs.append(_dev_disc_cost)
-        lib.plot.plot('dev disc cost', np.mean(dev_disc_costs))
+        lib.plot.plot('tmp/mnist/dev disc cost', np.mean(dev_disc_costs))
 
         generate_image(iteration, netG)
 
