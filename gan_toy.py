@@ -31,7 +31,7 @@ FIXED_GENERATOR = False  # whether to hold the generator fixed at real data plus
 LAMBDA = .1  # Smaller lambda seems to help for toy tasks specifically
 CRITIC_ITERS = 5  # How many critic iterations per generator iteration
 BATCH_SIZE = 256  # Batch size
-ITERS = 300000  # how many generator iterations to train for
+ITERS = 100000  # how many generator iterations to train for
 use_cuda = True
 
 # ==================Definition Start======================
