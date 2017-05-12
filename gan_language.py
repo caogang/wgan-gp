@@ -248,8 +248,7 @@ for iteration in xrange(ITERS):
         gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
         gradient_penalty.backward()
 
-        D = D_fake - D_real + gradient_penalty
-        D_cost = -D
+        D_cost = D_fake - D_real + gradient_penalty
         optimizerD.step()
 
     ############################
@@ -271,9 +270,9 @@ for iteration in xrange(ITERS):
     optimizerG.step()
 
     # Write logs and save samples
-    lib.plot.plot('time', time.time() - start_time)
-    lib.plot.plot('train disc cost', D_cost.cpu().data.numpy())
-    lib.plot.plot('train gen cost', G_cost.cpu().data.numpy())
+    lib.plot.plot('tmp/lang/time', time.time() - start_time)
+    lib.plot.plot('tmp/lang/train disc cost', D_cost.cpu().data.numpy())
+    lib.plot.plot('tmp/lang/train gen cost', G_cost.cpu().data.numpy())
 
     if iteration % 100 == 99:
         samples = []
@@ -282,9 +281,9 @@ for iteration in xrange(ITERS):
 
         for i in xrange(4):
             lm = language_helpers.NgramLanguageModel(i+1, samples, tokenize=False)
-            lib.plot.plot('js{}'.format(i+1), lm.js_with(true_char_ngram_lms[i]))
+            lib.plot.plot('tmp/lang/js{}'.format(i+1), lm.js_with(true_char_ngram_lms[i]))
 
-        with open('samples_{}.txt'.format(iteration), 'w') as f:
+        with open('tmp/lang/samples_{}.txt'.format(iteration), 'w') as f:
             for s in samples:
                 s = "".join(s)
                 f.write(s + "\n")
