@@ -269,6 +269,7 @@ for iteration in xrange(ITERS):
         gradient_penalty.backward()
 
         D_cost = D_fake - D_real + gradient_penalty
+        Wasserstein_D = D_real - D_fake
         optimizerD.step()
 
     ############################
@@ -293,6 +294,7 @@ for iteration in xrange(ITERS):
     lib.plot.plot('tmp/lang/time', time.time() - start_time)
     lib.plot.plot('tmp/lang/train disc cost', D_cost.cpu().data.numpy())
     lib.plot.plot('tmp/lang/train gen cost', G_cost.cpu().data.numpy())
+    lib.plot.plot('tmp/lang/wasserstein distance', Wasserstein_D.cpu().data.numpy())
 
     if iteration % 100 == 99:
         samples = []

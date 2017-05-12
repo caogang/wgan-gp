@@ -203,6 +203,7 @@ for iteration in xrange(ITERS):
         gradient_penalty.backward()
 
         D_cost = D_fake - D_real + gradient_penalty
+        Wasserstein_D = D_real - D_fake
         optimizerD.step()
 
     ############################

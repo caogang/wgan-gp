@@ -270,6 +270,7 @@ for iteration in xrange(ITERS):
         gradient_penalty.backward()
 
         D_cost = D_fake - D_real + gradient_penalty
+        Wasserstein_D = D_real - D_fake
         optimizerD.step()
 
     if not FIXED_GENERATOR:
@@ -299,6 +300,7 @@ for iteration in xrange(ITERS):
 
     # Write logs and save samples
     lib.plot.plot('tmp/' + DATASET + '/' + 'disc cost', D_cost.cpu().data.numpy())
+    lib.plot.plot('tmp/' + DATASET + '/' + 'wasserstein distance', Wasserstein_D.cpu().data.numpy())
     if not FIXED_GENERATOR:
         lib.plot.plot('tmp/' + DATASET + '/' + 'gen cost', G_cost.cpu().data.numpy())
     if iteration % 100 == 99:
