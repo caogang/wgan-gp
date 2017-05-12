@@ -269,8 +269,7 @@ for iteration in xrange(ITERS):
         gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
         gradient_penalty.backward()
 
-        D = D_fake - D_real + gradient_penalty
-        D_cost = -D
+        D_cost = D_fake - D_real + gradient_penalty
         optimizerD.step()
 
     if not FIXED_GENERATOR:
