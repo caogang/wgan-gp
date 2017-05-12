@@ -67,13 +67,29 @@ class ResBlock(nn.Module):
 
         self.res_block = nn.Sequential(
             nn.ReLU(True),
+            nn.Conv1d(DIM, DIM, 5, padding=2),#nn.Linear(DIM, DIM),
+            nn.ReLU(True),
+            nn.Conv1d(DIM, DIM, 5, padding=2),#nn.Linear(DIM, DIM),
+        )
+
+    def forward(self, input):
+        output = self.res_block(input)
+        return input + (0.3*output)
+
+class LinearBlock(nn.Module):
+
+    def __init__(self):
+        super(LinearBlock, self).__init__()
+
+        self.linear_block = nn.Sequential(
+            nn.ReLU(True),
             nn.Linear(DIM, DIM),#nn.Conv1d(DIM, DIM, 5, padding=2),
             nn.ReLU(True),
             nn.Linear(DIM, DIM),#nn.Conv1d(DIM, DIM, 5, padding=2),
         )
 
     def forward(self, input):
-        output = self.res_block(input)
+        output = self.linear_block(input)
         return input + (0.3*output)
 
 class Generator(nn.Module):
@@ -89,16 +105,20 @@ class Generator(nn.Module):
             ResBlock(),
             ResBlock(),
         )
-        self.fc2 = nn.Linear(DIM, len(charmap))
+        self.conv1 = nn.Conv1d(DIM, len(charmap), 1)
         self.softmax = nn.Softmax()
 
     def forward(self, noise):
         output = self.fc1(noise)
-        output = output.view(-1, DIM) # (BATCH_SIZE * SEQ_LEN, DIM)
+        output = output.view(-1, DIM, SEQ_LEN) # (BATCH_SIZE, DIM, SEQ_LEN)
         output = self.block(output)
-        output = self.fc2(output)
+        output = self.conv1(output)
+        output = output.transpose(1, 2)
+        shape = output.size()
+        output = output.contiguous()
+        output = output.view(BATCH_SIZE*SEQ_LEN, -1)
         output = self.softmax(output)
-        return output # (BATCH_SIZE * SEQ_LEN, len(charmap))
+        return output.view(shape) # (BATCH_SIZE, SEQ_LEN, len(charmap))
 
 class Discriminator(nn.Module):
 
@@ -107,11 +127,11 @@ class Discriminator(nn.Module):
 
         self.fc1 = nn.Linear(SEQ_LEN*DIM, 1)
         self.block = nn.Sequential(
-            ResBlock(),
-            ResBlock(),
-            ResBlock(),
-            ResBlock(),
-            ResBlock(),
+            LinearBlock(),
+            LinearBlock(),
+            LinearBlock(),
+            LinearBlock(),
+            LinearBlock(),
         )
         self.fc2 = nn.Linear(len(charmap), DIM)
 
