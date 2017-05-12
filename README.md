@@ -1,4 +1,4 @@
-# WGAN-GP [WIP]
+# WGAN-GP
 An pytorch implementation of Paper "Improved Training of Wasserstein GANs".
 
 # Prerequisites
@@ -14,11 +14,11 @@ A recent NVIDIA GPU
 
 > Due to that `ConvBackward is not differentiable`, Problem is under solving. When the features are supported, i will change it back.
 
-- [ ] gan_mnist.py : MNIST
+- [x] gan_mnist.py : MNIST (**Running Results while Finished** in 2017.5.11 using **nn.Linear** instead of **nn.Conv1d** in Discriminator)
 
-- [ ] gan_64x64.py: 64x64 architectures
+- [ ] gan_64x64.py: 64x64 architectures(Due to time problem, this module will be delayed. **Looking forward to your pull request**)
 
-- [ ] gan_cifar.py: CIFAR-10
+- [ ] gan_cifar.py: CIFAR-10(Due to time problem, this module will be delayed. **Looking forward to your pull request**)
 
 # Results
 
@@ -38,11 +38,18 @@ A recent NVIDIA GPU
 
   ![frame694](imgs/swissroll_frame694.jpg)
 
-  ​
+- [Mnist Dataset](result/mnist/)
 
-  ​
+  Some Sample Result, you can refer to the [results/mnist/](results/mnist/) folder for **details**.
+
+  ![mnist_samples_91899](imgs/mnist_samples_91899.png)
+
+  ![mnist_samples_91899](imgs/mnist_samples_92299.png)
+
+  ![mnist_samples_91899](imgs/mnist_samples_92499.png)
+
+
 
 # Acknowledge
 
-Based on the implementation [igul222/improved_wgan_training](https://github.com/igul222/improved_wgan_training)
-[martinarjovsky/WassersteinGAN](https://github.com/martinarjovsky/WassersteinGAN)
+Based on the implementation [igul222/improved_wgan_training](https://github.com/igul222/improved_wgan_training) and [martinarjovsky/WassersteinGAN](https://github.com/martinarjovsky/WassersteinGAN)
