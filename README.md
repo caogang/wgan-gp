@@ -10,7 +10,7 @@ A recent NVIDIA GPU
 
 - [x] gan_toy.py : Toy datasets (8 Gaussians, 25 Gaussians, Swiss Roll).(**Finished** in 2017.5.8)
 
-- [x] gan_language.py : Character-level language model (**Running Results while Finished** in 2017.5.10 using **nn.Linear** instead of **nn.Conv1d**)
+- [x] gan_language.py : Character-level language model (**Running Results while Finished** in 2017.5.10 using **nn.Linear** instead of **nn.Conv1d** in Discriminator. Generator is using **nn.Conv1d**)
 
 > Due to that `ConvBackward is not differentiable`, Problem is under solving. When the features are supported, i will change it back.
 
