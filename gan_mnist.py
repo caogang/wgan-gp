@@ -228,6 +228,7 @@ for iteration in xrange(ITERS):
     lib.plot.plot('tmp/mnist/time', time.time() - start_time)
     lib.plot.plot('tmp/mnist/train disc cost', D_cost.cpu().data.numpy())
     lib.plot.plot('tmp/mnist/train gen cost', G_cost.cpu().data.numpy())
+    lib.plot.plot('tmp/mnist/wasserstein distance', Wasserstein_D.cpu().data.numpy())
 
     # Calculate dev loss and generate samples every 100 iters
     if iteration % 100 == 99:
