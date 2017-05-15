@@ -3,8 +3,10 @@ An pytorch implementation of Paper "Improved Training of Wasserstein GANs".
 
 # Prerequisites
 
-Python, NumPy, Pytorch, SciPy, Matplotlib, Pytorch
+Python, NumPy, SciPy, Matplotlib
 A recent NVIDIA GPU
+
+**A latest master version of Pytorch**(after commit [Add high order grad support for Some operator (](https://github.com/pytorch/pytorch/commit/0ba20435ce09aa5771ab3aca02db58ba0606ea44)[#1507](https://github.com/pytorch/pytorch/pull/1507)[)](https://github.com/pytorch/pytorch/commit/0ba20435ce09aa5771ab3aca02db58ba0606ea44))
 
 # Progress
 
