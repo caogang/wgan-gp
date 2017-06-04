@@ -13,8 +13,6 @@ import torch.optim as optim
 
 import language_helpers
 import tflib as lib
-import tflib.ops.linear
-import tflib.ops.conv1d
 import tflib.plot
 
 from sklearn.preprocessing import OneHotEncoder
