@@ -74,28 +74,33 @@ class Generator(nn.Module):
         #print output.size()
         return output.view(-1, OUTPUT_DIM)
 
-# TODO: Replace this using CNN once pytorch is supported
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
         main = nn.Sequential(
-            nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 1),
+            nn.Conv2D(OUTPUT_DIM, DIM, 5, stride=2),
+            # nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
+            nn.LeakyReLU(True),
+            nn.Conv2D(DIM, 2*DIM, 5, stride=2),
+            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            nn.LeakyReLU(True),
+            nn.Conv2D(2*DIM, 4*DIM, 5, stride=2),
+            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            nn.LeakyReLU(True),
+            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            # nn.LeakyReLU(True),
+            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            # nn.LeakyReLU(True),
         )
         self.main = main
+        self.output = nn.Linear(4*4*4*DIM, 1),
 
     def forward(self, input):
-        return self.main(input).view(-1)
+        out = self.main(input)
+        out = out.view(-1, 4*4*4*DIM)
+        out = self.output(out)
+        return out.view(-1)
 
 def generate_image(frame, netG):
     noise = torch.randn(BATCH_SIZE, 128)
@@ -134,7 +139,6 @@ def calc_gradient_penalty(netD, real_data, fake_data):
 
     disc_interpolates = netD(interpolates)
 
-    # TODO: Make ConvBackward diffentiable
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
                               grad_outputs=torch.ones(disc_interpolates.size()).cuda(gpu) if use_cuda else torch.ones(
                                   disc_interpolates.size()),
