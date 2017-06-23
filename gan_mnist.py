@@ -8,7 +8,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import sklearn.datasets
-import tensorflow as tf
 
 import tflib as lib
 import tflib.save_images
@@ -23,6 +22,8 @@ import torch.optim as optim
 
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
+if use_cuda:
+    gpu = 0
 
 DIM = 64 # Model dimensionality
 BATCH_SIZE = 50 # Batch size
@@ -73,33 +74,39 @@ class Generator(nn.Module):
         #print output.size()
         return output.view(-1, OUTPUT_DIM)
 
-# TODO: Replace this using CNN once pytorch is supported
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
         main = nn.Sequential(
-            nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 4*4*4*DIM),
-            nn.ReLU(True),
-            nn.Linear(4*4*4*DIM, 1),
+            nn.Conv2d(1, DIM, 5, stride=2, padding=2),
+            # nn.Linear(OUTPUT_DIM, 4*4*4*DIM),
+            nn.LeakyReLU(True),
+            nn.Conv2d(DIM, 2*DIM, 5, stride=2, padding=2),
+            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            nn.LeakyReLU(True),
+            nn.Conv2d(2*DIM, 4*DIM, 5, stride=2, padding=2),
+            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            nn.LeakyReLU(True),
+            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            # nn.LeakyReLU(True),
+            # nn.Linear(4*4*4*DIM, 4*4*4*DIM),
+            # nn.LeakyReLU(True),
         )
         self.main = main
+        self.output = nn.Linear(4*4*4*DIM, 1)
 
     def forward(self, input):
-        return self.main(input).view(-1)
+        input = input.view(-1, 1, 28, 28)
+        out = self.main(input)
+        out = out.view(-1, 4*4*4*DIM)
+        out = self.output(out)
+        return out.view(-1)
 
 def generate_image(frame, netG):
     noise = torch.randn(BATCH_SIZE, 128)
     if use_cuda:
-        noise = noise.cuda()
+        noise = noise.cuda(gpu)
     noisev = autograd.Variable(noise, volatile=True)
     samples = netG(noisev)
     samples = samples.view(BATCH_SIZE, 28, 28)
@@ -123,19 +130,18 @@ def calc_gradient_penalty(netD, real_data, fake_data):
     #print real_data.size()
     alpha = torch.rand(BATCH_SIZE, 1)
     alpha = alpha.expand(real_data.size())
-    alpha = alpha.cuda() if use_cuda else alpha
+    alpha = alpha.cuda(gpu) if use_cuda else alpha
 
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
 
     if use_cuda:
-        interpolates = interpolates.cuda()
+        interpolates = interpolates.cuda(gpu)
     interpolates = autograd.Variable(interpolates, requires_grad=True)
 
     disc_interpolates = netD(interpolates)
 
-    # TODO: Make ConvBackward diffentiable
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(
+                              grad_outputs=torch.ones(disc_interpolates.size()).cuda(gpu) if use_cuda else torch.ones(
                                   disc_interpolates.size()),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
@@ -150,8 +156,8 @@ print netG
 print netD
 
 if use_cuda:
-    netD = netD.cuda()
-    netG = netG.cuda()
+    netD = netD.cuda(gpu)
+    netG = netG.cuda(gpu)
 
 optimizerD = optim.Adam(netD.parameters(), lr=1e-4, betas=(0.5, 0.9))
 optimizerG = optim.Adam(netG.parameters(), lr=1e-4, betas=(0.5, 0.9))
@@ -159,8 +165,8 @@ optimizerG = optim.Adam(netG.parameters(), lr=1e-4, betas=(0.5, 0.9))
 one = torch.FloatTensor([1])
 mone = one * -1
 if use_cuda:
-    one = one.cuda()
-    mone = mone.cuda()
+    one = one.cuda(gpu)
+    mone = mone.cuda(gpu)
 
 data = inf_train_gen()
 
@@ -176,7 +182,7 @@ for iteration in xrange(ITERS):
         _data = data.next()
         real_data = torch.Tensor(_data)
         if use_cuda:
-            real_data = real_data.cuda()
+            real_data = real_data.cuda(gpu)
         real_data_v = autograd.Variable(real_data)
 
         netD.zero_grad()
@@ -190,7 +196,7 @@ for iteration in xrange(ITERS):
         # train with fake
         noise = torch.randn(BATCH_SIZE, 128)
         if use_cuda:
-            noise = noise.cuda()
+            noise = noise.cuda(gpu)
         noisev = autograd.Variable(noise, volatile=True)  # totally freeze netG
         fake = autograd.Variable(netG(noisev).data)
         inputv = fake
@@ -215,7 +221,7 @@ for iteration in xrange(ITERS):
 
     noise = torch.randn(BATCH_SIZE, 128)
     if use_cuda:
-        noise = noise.cuda()
+        noise = noise.cuda(gpu)
     noisev = autograd.Variable(noise)
     fake = netG(noisev)
     G = netD(fake)
@@ -236,7 +242,7 @@ for iteration in xrange(ITERS):
         for images,_ in dev_gen():
             imgs = torch.Tensor(images)
             if use_cuda:
-                imgs = imgs.cuda()
+                imgs = imgs.cuda(gpu)
             imgs_v = autograd.Variable(imgs, volatile=True)
 
             D = netD(imgs_v)
