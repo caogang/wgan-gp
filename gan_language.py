@@ -19,6 +19,8 @@ from sklearn.preprocessing import OneHotEncoder
 
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
+if use_cuda:
+    gpu = 1
 
 # Download Google Billion Word at http://www.statmt.org/lm-benchmark/ and
 # fill in the path to the extracted files here!
@@ -35,7 +37,7 @@ CRITIC_ITERS = 10 # How many critic iterations per generator iteration. We
                   # use 10 for the results in the paper, but 5 should work fine
                   # as well.
 LAMBDA = 10 # Gradient penalty lambda hyperparameter.
-MAX_N_EXAMPLES = 10000000#10000000 # Max number of data examples to load. If data loading
+MAX_N_EXAMPLES = 1000#10000000 # Max number of data examples to load. If data loading
                           # is too slow or takes too much RAM, you can decrease
                           # this (at the expense of having less training data).
 
@@ -55,7 +57,7 @@ one_hot.fit(table)
 # ==================Definition Start======================
 
 def make_noise(shape, volatile=False):
-    tensor = torch.randn(shape).cuda() if use_cuda else torch.randn(shape)
+    tensor = torch.randn(shape).cuda(gpu) if use_cuda else torch.randn(shape)
     return autograd.Variable(tensor, volatile)
 
 class ResBlock(nn.Module):
@@ -72,22 +74,6 @@ class ResBlock(nn.Module):
 
     def forward(self, input):
         output = self.res_block(input)
-        return input + (0.3*output)
-
-class LinearBlock(nn.Module):
-
-    def __init__(self):
-        super(LinearBlock, self).__init__()
-
-        self.linear_block = nn.Sequential(
-            nn.ReLU(True),
-            nn.Linear(DIM, DIM),#nn.Conv1d(DIM, DIM, 5, padding=2),
-            nn.ReLU(True),
-            nn.Linear(DIM, DIM),#nn.Conv1d(DIM, DIM, 5, padding=2),
-        )
-
-    def forward(self, input):
-        output = self.linear_block(input)
         return input + (0.3*output)
 
 class Generator(nn.Module):
@@ -123,22 +109,22 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
 
-        self.fc1 = nn.Linear(SEQ_LEN*DIM, 1)
         self.block = nn.Sequential(
-            LinearBlock(),
-            LinearBlock(),
-            LinearBlock(),
-            LinearBlock(),
-            LinearBlock(),
+            ResBlock(),
+            ResBlock(),
+            ResBlock(),
+            ResBlock(),
+            ResBlock(),
         )
-        self.fc2 = nn.Linear(len(charmap), DIM)
+        self.conv1d = nn.Conv1d(len(charmap), DIM, 1)
+        self.linear = nn.Linear(SEQ_LEN*DIM, 1)
 
     def forward(self, input):
-        output = input.view(-1, len(charmap))
-        output = self.fc2(output)
+        output = input.transpose(1, 2) # (BATCH_SIZE, len(charmap), SEQ_LEN)
+        output = self.conv1d(output)
         output = self.block(output)
         output = output.view(-1, SEQ_LEN*DIM)
-        output = self.fc1(output)
+        output = self.linear(output)
         return output
 
 # Dataset iterator
@@ -154,19 +140,19 @@ def inf_train_gen():
 def calc_gradient_penalty(netD, real_data, fake_data):
     alpha = torch.rand(BATCH_SIZE, 1, 1)
     alpha = alpha.expand(real_data.size())
-    alpha = alpha.cuda() if use_cuda else alpha
+    alpha = alpha.cuda(gpu) if use_cuda else alpha
 
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
 
     if use_cuda:
-        interpolates = interpolates.cuda()
+        interpolates = interpolates.cuda(gpu)
     interpolates = autograd.Variable(interpolates, requires_grad=True)
 
     disc_interpolates = netD(interpolates)
 
     # TODO: Make ConvBackward diffentiable
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(
+                              grad_outputs=torch.ones(disc_interpolates.size()).cuda(gpu) if use_cuda else torch.ones(
                                   disc_interpolates.size()),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
@@ -176,7 +162,7 @@ def calc_gradient_penalty(netD, real_data, fake_data):
 def generate_samples(netG):
     noise = torch.randn(BATCH_SIZE, 128)
     if use_cuda:
-        noise = noise.cuda()
+        noise = noise.cuda(gpu)
     noisev = autograd.Variable(noise, volatile=True)
     samples = netG(noisev)
     samples = samples.view(-1, SEQ_LEN, len(charmap))
@@ -201,8 +187,8 @@ print netG
 print netD
 
 if use_cuda:
-    netD = netD.cuda()
-    netG = netG.cuda()
+    netD = netD.cuda(gpu)
+    netG = netG.cuda(gpu)
 
 optimizerD = optim.Adam(netD.parameters(), lr=1e-4, betas=(0.5, 0.9))
 optimizerG = optim.Adam(netG.parameters(), lr=1e-4, betas=(0.5, 0.9))
@@ -210,8 +196,8 @@ optimizerG = optim.Adam(netG.parameters(), lr=1e-4, betas=(0.5, 0.9))
 one = torch.FloatTensor([1])
 mone = one * -1
 if use_cuda:
-    one = one.cuda()
-    mone = mone.cuda()
+    one = one.cuda(gpu)
+    mone = mone.cuda(gpu)
 
 data = inf_train_gen()
 
@@ -238,7 +224,7 @@ for iteration in xrange(ITERS):
         #print data_one_hot.shape
         real_data = torch.Tensor(data_one_hot)
         if use_cuda:
-            real_data = real_data.cuda()
+            real_data = real_data.cuda(gpu)
         real_data_v = autograd.Variable(real_data)
 
         netD.zero_grad()
@@ -253,7 +239,7 @@ for iteration in xrange(ITERS):
         # train with fake
         noise = torch.randn(BATCH_SIZE, 128)
         if use_cuda:
-            noise = noise.cuda()
+            noise = noise.cuda(gpu)
         noisev = autograd.Variable(noise, volatile=True)  # totally freeze netG
         fake = autograd.Variable(netG(noisev).data)
         inputv = fake
@@ -279,7 +265,7 @@ for iteration in xrange(ITERS):
 
     noise = torch.randn(BATCH_SIZE, 128)
     if use_cuda:
-        noise = noise.cuda()
+        noise = noise.cuda(gpu)
     noisev = autograd.Variable(noise)
     fake = netG(noisev)
     G = netD(fake)
