@@ -6,21 +6,20 @@ An pytorch implementation of Paper "Improved Training of Wasserstein GANs".
 Python, NumPy, SciPy, Matplotlib
 A recent NVIDIA GPU
 
-**A latest master version of Pytorch**(after commit [Add high order grad support for Some operator (](https://github.com/pytorch/pytorch/commit/0ba20435ce09aa5771ab3aca02db58ba0606ea44)[#1507](https://github.com/pytorch/pytorch/pull/1507)[)](https://github.com/pytorch/pytorch/commit/0ba20435ce09aa5771ab3aca02db58ba0606ea44))
+**A latest master version of Pytorch**
 
 # Progress
 
 - [x] gan_toy.py : Toy datasets (8 Gaussians, 25 Gaussians, Swiss Roll).(**Finished** in 2017.5.8)
 
-- [x] gan_language.py : Character-level language model (**Running Results while Finished** in 2017.5.10 using **nn.Linear** instead of **nn.Conv1d** in Discriminator. Generator is using **nn.Conv1d**)
+- [x] gan_language.py : Character-level language model (Discriminator is using **nn.Conv1d**. Generator is using **nn.Conv1d**. **Finished** in 2017.6.23. And Results is coming soon.)
 
-> Due to that `ConvBackward is not differentiable`, Problem is under solving. When the features are supported, i will change it back.
 
-- [x] gan_mnist.py : MNIST (**Running Results while Finished** in 2017.5.11 using **nn.Linear** instead of **nn.Conv1d** in Discriminator)
+- [x] gan_mnist.py : MNIST (**Running Results while Finished** in 2017.5.11. Discriminator is using **nn.Conv1d**. Generator is using **nn.Conv1d**. And New Results is coming soon.)
 
-- [ ] gan_64x64.py: 64x64 architectures(Due to time problem, this module will be delayed. **Looking forward to your pull request**)
+- [ ] gan_64x64.py: 64x64 architectures(**Looking forward to your pull request**)
 
-- [ ] gan_cifar.py: CIFAR-10(Due to time problem, this module will be delayed. **Looking forward to your pull request**)
+- [ ] gan_cifar.py: CIFAR-10(**Looking forward to your pull request**)
 
 # Results
 
