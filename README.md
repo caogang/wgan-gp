@@ -15,7 +15,7 @@ A recent NVIDIA GPU
 - [x] gan_language.py : Character-level language model (Discriminator is using **nn.Conv1d**. Generator is using **nn.Conv1d**. **Finished** in 2017.6.23. And Results is coming soon.)
 
 
-- [x] gan_mnist.py : MNIST (**Running Results while Finished** in 2017.5.11. Discriminator is using **nn.Conv1d**. Generator is using **nn.Conv1d**. And New Results is coming soon.)
+- [x] gan_mnist.py : MNIST (**Running Results while Finished** in 2017.6.26. Discriminator is using **nn.Conv1d**. Generator is using **nn.Conv1d**.)
 
 - [ ] gan_64x64.py: 64x64 architectures(**Looking forward to your pull request**)
 
@@ -49,6 +49,7 @@ A recent NVIDIA GPU
 
   ![mnist_samples_91899](imgs/mnist_samples_92499.png)
 
+  ![mnist_samples_199999](imgs/mnist_samples_199999.png)
 
 
 # Acknowledge
