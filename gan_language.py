@@ -20,7 +20,7 @@ from sklearn.preprocessing import OneHotEncoder
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 if use_cuda:
-    gpu = 1
+    gpu = 0
 
 # Download Google Billion Word at http://www.statmt.org/lm-benchmark/ and
 # fill in the path to the extracted files here!
@@ -37,7 +37,7 @@ CRITIC_ITERS = 10 # How many critic iterations per generator iteration. We
                   # use 10 for the results in the paper, but 5 should work fine
                   # as well.
 LAMBDA = 10 # Gradient penalty lambda hyperparameter.
-MAX_N_EXAMPLES = 1000#10000000 # Max number of data examples to load. If data loading
+MAX_N_EXAMPLES = 10000000#10000000 # Max number of data examples to load. If data loading
                           # is too slow or takes too much RAM, you can decrease
                           # this (at the expense of having less training data).
 
