@@ -19,7 +19,7 @@ A recent NVIDIA GPU
 
 - [ ] gan_64x64.py: 64x64 architectures(**Looking forward to your pull request**)
 
-- [ ] gan_cifar.py: CIFAR-10(**Looking forward to your pull request**)
+- [x] gan_cifar.py: CIFAR-10(**Great thanks to [robotcator](https://github.com/caogang/wgan-gp/pull/18)**)
 
 # Results
 
@@ -39,7 +39,7 @@ A recent NVIDIA GPU
 
   ![frame694](imgs/swissroll_frame694.jpg)
 
-- [Mnist Dataset](result/mnist/)
+- [Mnist Dataset](results/mnist/)
 
   Some Sample Result, you can refer to the [results/mnist/](results/mnist/) folder for **details**.
 
@@ -58,28 +58,34 @@ A recent NVIDIA GPU
   I haven't run enough epochs due to that this is very time-comsuming.
 
   > He moved the mat all out clame t
-  > 
+  >
   > A fosts of shores forreuid he pe
-  > 
+  >
   > It whith Crouchy digcloued defor
-  > 
+  >
   > Pamreutol the rered in Car inson
-  > 
+  >
   > Nor op to the lecs ficomens o fe
-  > 
+  >
   > In is a " nored by of the ot can
-  > 
+  >
   > The onteon I dees this pirder , 
-  > 
+  >
   > It is Brobes aoracy of " medurn 
-  > 
+  >
   > Rame he reaariod to thim atreast
-  > 
+  >
   > The stinl who herth of the not t
-  > 
+  >
   > The witl is f ont UAy Y nalence 
-  > 
+  >
   > It a over , tose sho Leloch Cumm
+
+- [Cifar10 Dataset](results/cifar10/)
+
+  Some Sample Result, you can refer to the [results/cifar10/](results/cifar10/) folder for **details**.
+
+  ![mnist_samples_91899](imgs/cifar10_samples_80099.jpg)
 
 # Acknowledge
 
