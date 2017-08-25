@@ -177,7 +177,6 @@ preprocess = torchvision.transforms.Compose([
                            ])
 
 for iteration in xrange(ITERS):
-    # print "iteration: ", iteration,
     start_time = time.time()
     ############################
     # (1) Update D network
@@ -248,7 +247,6 @@ for iteration in xrange(ITERS):
     lib.plot.plot('./tmp/cifar10/train gen cost', G_cost.cpu().data.numpy())
     lib.plot.plot('./tmp/cifar10/wasserstein distance', Wasserstein_D.cpu().data.numpy())
 
-    # exit()
     # Calculate inception score every 1K iters
     if False and iteration % 1000 == 999:
         inception_score = get_inception_score(netG)
