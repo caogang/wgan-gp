@@ -1,22 +1,20 @@
-import os, sys
+from torch import optim
+from torch import autograd
+from torch import nn
+import torchvision
+import torch
+import numpy as np
+import tflib.inception_score
+import tflib.plot
+import tflib.cifar10
+import tflib.mnist
+import tflib.save_images
+import tflib as lib
+import time
+import os
+import sys
 sys.path.append(os.getcwd())
 
-import time
-import tflib as lib
-import tflib.save_images
-import tflib.mnist
-import tflib.cifar10
-import tflib.plot
-import tflib.inception_score
-
-import numpy as np
-
-
-import torch
-import torchvision
-from torch import nn
-from torch import autograd
-from torch import optim
 
 # Download CIFAR-10 (Python version) at
 # https://www.cs.toronto.edu/~kriz/cifar.html and fill in the path to the
@@ -25,13 +23,13 @@ DATA_DIR = 'cifar-10-batches-py/'
 if len(DATA_DIR) == 0:
     raise Exception('Please specify path to data directory in gan_cifar.py!')
 
-MODE = 'wgan-gp' # Valid options are dcgan, wgan, or wgan-gp
-DIM = 128 # This overfits substantially; you're probably better off with 64
-LAMBDA = 10 # Gradient penalty lambda hyperparameter
-CRITIC_ITERS = 5 # How many critic iterations per generator iteration
-BATCH_SIZE = 64 # Batch size
-ITERS = 200000 # How many generator iterations to train for
-OUTPUT_DIM = 3072 # Number of pixels in CIFAR10 (3*32*32)
+MODE = 'wgan-gp'  # Valid options are dcgan, wgan, or wgan-gp
+DIM = 128  # This overfits substantially; you're probably better off with 64
+LAMBDA = 10  # Gradient penalty lambda hyperparameter
+CRITIC_ITERS = 5  # How many critic iterations per generator iteration
+BATCH_SIZE = 64  # Batch size
+ITERS = 200000  # How many generator iterations to train for
+OUTPUT_DIM = 3072  # Number of pixels in CIFAR10 (3*32*32)
 
 
 class Generator(nn.Module):
@@ -92,6 +90,7 @@ class Discriminator(nn.Module):
         output = self.linear(output)
         return output
 
+
 netG = Generator()
 netD = Discriminator()
 print netG
@@ -113,10 +112,12 @@ if use_cuda:
 optimizerD = optim.Adam(netD.parameters(), lr=1e-4, betas=(0.5, 0.9))
 optimizerG = optim.Adam(netG.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
+
 def calc_gradient_penalty(netD, real_data, fake_data):
     # print "real_data: ", real_data.size(), fake_data.size()
     alpha = torch.rand(BATCH_SIZE, 1)
-    alpha = alpha.expand(BATCH_SIZE, real_data.nelement()/BATCH_SIZE).contiguous().view(BATCH_SIZE, 3, 32, 32)
+    alpha = alpha.expand(BATCH_SIZE, real_data.nelement(
+    )/BATCH_SIZE).contiguous().view(BATCH_SIZE, 3, 32, 32)
     alpha = alpha.cuda(gpu) if use_cuda else alpha
 
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
@@ -137,6 +138,8 @@ def calc_gradient_penalty(netD, real_data, fake_data):
     return gradient_penalty
 
 # For generating samples
+
+
 def generate_image(frame, netG):
     fixed_noise_128 = torch.randn(128, 128)
     if use_cuda:
@@ -147,12 +150,15 @@ def generate_image(frame, netG):
     samples = samples.mul(0.5).add(0.5)
     samples = samples.cpu().data.numpy()
 
-    lib.save_images.save_images(samples, './tmp/cifar10/samples_{}.jpg'.format(frame))
+    lib.save_images.save_images(
+        samples, './tmp/cifar10/samples_{}.jpg'.format(frame))
 
 # For calculating inception score
+
+
 def get_inception_score(G, ):
     all_samples = []
-    for i in xrange(10):
+    for i in range(10):
         samples_100 = torch.randn(100, 128)
         if use_cuda:
             samples_100 = samples_100.cuda(gpu)
@@ -160,31 +166,37 @@ def get_inception_score(G, ):
         all_samples.append(G(samples_100).cpu().data.numpy())
 
     all_samples = np.concatenate(all_samples, axis=0)
-    all_samples = np.multiply(np.add(np.multiply(all_samples, 0.5), 0.5), 255).astype('int32')
+    all_samples = np.multiply(
+        np.add(np.multiply(all_samples, 0.5), 0.5), 255).astype('int32')
     all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0, 2, 3, 1)
     return lib.inception_score.get_inception_score(list(all_samples))
 
+
 # Dataset iterator
 train_gen, dev_gen = lib.cifar10.load(BATCH_SIZE, data_dir=DATA_DIR)
+
+
 def inf_train_gen():
     while True:
         for images, target in train_gen():
             # yield images.astype('float32').reshape(BATCH_SIZE, 3, 32, 32).transpose(0, 2, 3, 1)
             yield images
+
+
 gen = inf_train_gen()
 preprocess = torchvision.transforms.Compose([
-                               torchvision.transforms.ToTensor(),
-                               torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-                           ])
+    torchvision.transforms.ToTensor(),
+    torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+])
 
-for iteration in xrange(ITERS):
+for iteration in range(ITERS):
     start_time = time.time()
     ############################
     # (1) Update D network
     ###########################
     for p in netD.parameters():  # reset requires_grad
         p.requires_grad = True  # they are set to False below in netG update
-    for i in xrange(CRITIC_ITERS):
+    for i in range(CRITIC_ITERS):
         _data = gen.next()
         netD.zero_grad()
 
@@ -216,7 +228,8 @@ for iteration in xrange(ITERS):
         D_fake.backward(one)
 
         # train with gradient penalty
-        gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
+        gradient_penalty = calc_gradient_penalty(
+            netD, real_data_v.data, fake.data)
         gradient_penalty.backward()
 
         # print "gradien_penalty: ", gradient_penalty
@@ -246,7 +259,8 @@ for iteration in xrange(ITERS):
     lib.plot.plot('./tmp/cifar10/train disc cost', D_cost.cpu().data.numpy())
     lib.plot.plot('./tmp/cifar10/time', time.time() - start_time)
     lib.plot.plot('./tmp/cifar10/train gen cost', G_cost.cpu().data.numpy())
-    lib.plot.plot('./tmp/cifar10/wasserstein distance', Wasserstein_D.cpu().data.numpy())
+    lib.plot.plot('./tmp/cifar10/wasserstein distance',
+                  Wasserstein_D.cpu().data.numpy())
 
     # Calculate inception score every 1K iters
     if False and iteration % 1000 == 999:
@@ -257,7 +271,8 @@ for iteration in xrange(ITERS):
     if iteration % 100 == 99:
         dev_disc_costs = []
         for images, _ in dev_gen():
-            images = images.reshape(BATCH_SIZE, 3, 32, 32).transpose(0, 2, 3, 1)
+            images = images.reshape(
+                BATCH_SIZE, 3, 32, 32).transpose(0, 2, 3, 1)
             imgs = torch.stack([preprocess(item) for item in images])
 
             # imgs = preprocess(images)

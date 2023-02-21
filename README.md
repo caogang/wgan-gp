@@ -17,7 +17,7 @@ A recent NVIDIA GPU
 
 - [x] gan_mnist.py : MNIST (**Running Results while Finished** in 2017.6.26. Discriminator is using **nn.Conv1d**. Generator is using **nn.Conv1d**.)
 
-- [ ] gan_64x64.py: 64x64 architectures(**Looking forward to your pull request**)
+- [x] gan_64x64.py: 64x64 architectures(**Running Results while Finished** in 2023.02.21. The main architecture is based on DCGAN.)
 
 - [x] gan_cifar.py: CIFAR-10(**Great thanks to [robotcator](https://github.com/caogang/wgan-gp/pull/18)**)
 

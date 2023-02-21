@@ -1,24 +1,23 @@
-import os, sys
+import torch.optim as optim
+import torch.nn.functional as F
+import torch.nn as nn
+import torch.autograd as autograd
+import torch
+import tflib.plot
+import tflib as lib
+import sklearn.datasets
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+import random
+import os
+import sys
 
 sys.path.append(os.getcwd())
 
-import random
-
-import matplotlib
 
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-import sklearn.datasets
 
-import tflib as lib
-import tflib.plot
-
-import torch
-import torch.autograd as autograd
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 
 torch.manual_seed(1)
 
@@ -35,6 +34,7 @@ ITERS = 100000  # how many generator iterations to train for
 use_cuda = True
 
 # ==================Definition Start======================
+
 
 class Generator(nn.Module):
 
@@ -91,7 +91,10 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
+
 frame_index = [0]
+
+
 def generate_image(true_dist):
     """
     Generates and saves a plot of the true distribution, the generator, and the
@@ -114,7 +117,8 @@ def generate_image(true_dist):
     if use_cuda:
         noise = noise.cuda()
     noisev = autograd.Variable(noise, volatile=True)
-    true_dist_v = autograd.Variable(torch.Tensor(true_dist).cuda() if use_cuda else torch.Tensor(true_dist))
+    true_dist_v = autograd.Variable(torch.Tensor(
+        true_dist).cuda() if use_cuda else torch.Tensor(true_dist))
     samples = netG(noisev, true_dist_v).cpu().data.numpy()
 
     plt.clf()
@@ -126,7 +130,8 @@ def generate_image(true_dist):
     if not FIXED_GENERATOR:
         plt.scatter(samples[:, 0], samples[:, 1], c='green', marker='+')
 
-    plt.savefig('tmp/' + DATASET + '/' + 'frame' + str(frame_index[0]) + '.jpg')
+    plt.savefig('tmp/' + DATASET + '/' + 'frame' +
+                str(frame_index[0]) + '.jpg')
 
     frame_index[0] += 1
 
@@ -136,9 +141,9 @@ def inf_train_gen():
     if DATASET == '25gaussians':
 
         dataset = []
-        for i in xrange(100000 / 25):
-            for x in xrange(-2, 3):
-                for y in xrange(-2, 3):
+        for i in range(100000 / 25):
+            for x in range(-2, 3):
+                for y in range(-2, 3):
                     point = np.random.randn(2) * 0.05
                     point[0] += 2 * x
                     point[1] += 2 * y
@@ -147,7 +152,7 @@ def inf_train_gen():
         np.random.shuffle(dataset)
         dataset /= 2.828  # stdev
         while True:
-            for i in xrange(len(dataset) / BATCH_SIZE):
+            for i in range(len(dataset) / BATCH_SIZE):
                 yield dataset[i * BATCH_SIZE:(i + 1) * BATCH_SIZE]
 
     elif DATASET == 'swissroll':
@@ -177,7 +182,7 @@ def inf_train_gen():
         centers = [(scale * x, scale * y) for x, y in centers]
         while True:
             dataset = []
-            for i in xrange(BATCH_SIZE):
+            for i in range(BATCH_SIZE):
                 point = np.random.randn(2) * .02
                 center = random.choice(centers)
                 point[0] += center[0]
@@ -211,6 +216,7 @@ def calc_gradient_penalty(netD, real_data, fake_data):
 
 # ==================Definition End======================
 
+
 netG = Generator()
 netD = Discriminator()
 netD.apply(weights_init)
@@ -233,14 +239,14 @@ if use_cuda:
 
 data = inf_train_gen()
 
-for iteration in xrange(ITERS):
+for iteration in range(ITERS):
     ############################
     # (1) Update D network
     ###########################
     for p in netD.parameters():  # reset requires_grad
         p.requires_grad = True  # they are set to False below in netG update
 
-    for iter_d in xrange(CRITIC_ITERS):
+    for iter_d in range(CRITIC_ITERS):
         _data = data.next()
         real_data = torch.Tensor(_data)
         if use_cuda:
@@ -266,7 +272,8 @@ for iteration in xrange(ITERS):
         D_fake.backward(one)
 
         # train with gradient penalty
-        gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
+        gradient_penalty = calc_gradient_penalty(
+            netD, real_data_v.data, fake.data)
         gradient_penalty.backward()
 
         D_cost = D_fake - D_real + gradient_penalty
@@ -299,10 +306,13 @@ for iteration in xrange(ITERS):
         optimizerG.step()
 
     # Write logs and save samples
-    lib.plot.plot('tmp/' + DATASET + '/' + 'disc cost', D_cost.cpu().data.numpy())
-    lib.plot.plot('tmp/' + DATASET + '/' + 'wasserstein distance', Wasserstein_D.cpu().data.numpy())
+    lib.plot.plot('tmp/' + DATASET + '/' + 'disc cost',
+                  D_cost.cpu().data.numpy())
+    lib.plot.plot('tmp/' + DATASET + '/' + 'wasserstein distance',
+                  Wasserstein_D.cpu().data.numpy())
     if not FIXED_GENERATOR:
-        lib.plot.plot('tmp/' + DATASET + '/' + 'gen cost', G_cost.cpu().data.numpy())
+        lib.plot.plot('tmp/' + DATASET + '/' + 'gen cost',
+                      G_cost.cpu().data.numpy())
     if iteration % 100 == 99:
         lib.plot.flush()
         generate_image(_data)

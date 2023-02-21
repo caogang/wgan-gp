@@ -27,7 +27,7 @@ if __name__ == '__main__':
     train_gen, valid_gen = load(64)
     t0 = time.time()
     for i, batch in enumerate(train_gen(), start=1):
-        print "{}\t{}".format(str(time.time() - t0), batch[0][0,0,0,0])
+        print("{}\t{}".format(str(time.time() - t0), batch[0][0,0,0,0]))
         if i == 1000:
             break
         t0 = time.time()

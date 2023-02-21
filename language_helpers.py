@@ -2,8 +2,10 @@ import collections
 import numpy as np
 import re
 
+
 def tokenize_string(sample):
     return tuple(sample.lower().split(' '))
+
 
 class NgramLanguageModel(object):
     def __init__(self, n, samples, tokenize=False):
@@ -24,7 +26,7 @@ class NgramLanguageModel(object):
     def ngrams(self):
         n = self._n
         for sample in self._samples:
-            for i in xrange(len(sample)-n+1):
+            for i in range(len(sample)-n+1):
                 yield sample[i:i+n]
 
     def unique_ngrams(self):
@@ -40,7 +42,8 @@ class NgramLanguageModel(object):
         # p is another NgramLanguageModel
         log_likelihood_ratios = []
         for ngram in p.ngrams():
-            log_likelihood_ratios.append(p.log_likelihood(ngram) - self.log_likelihood(ngram))
+            log_likelihood_ratios.append(p.log_likelihood(
+                ngram) - self.log_likelihood(ngram))
         return np.mean(log_likelihood_ratios)
 
     def cosine_sim_with(self, p):
@@ -73,27 +76,33 @@ class NgramLanguageModel(object):
         return p.precision_wrt(self)
 
     def js_with(self, p):
-        log_p = np.array([p.log_likelihood(ngram) for ngram in p.unique_ngrams()])
-        log_q = np.array([self.log_likelihood(ngram) for ngram in p.unique_ngrams()])
+        log_p = np.array([p.log_likelihood(ngram)
+                         for ngram in p.unique_ngrams()])
+        log_q = np.array([self.log_likelihood(ngram)
+                         for ngram in p.unique_ngrams()])
         log_m = np.logaddexp(log_p - np.log(2), log_q - np.log(2))
         kl_p_m = np.sum(np.exp(log_p) * (log_p - log_m))
 
-        log_p = np.array([p.log_likelihood(ngram) for ngram in self.unique_ngrams()])
-        log_q = np.array([self.log_likelihood(ngram) for ngram in self.unique_ngrams()])
+        log_p = np.array([p.log_likelihood(ngram)
+                         for ngram in self.unique_ngrams()])
+        log_q = np.array([self.log_likelihood(ngram)
+                         for ngram in self.unique_ngrams()])
         log_m = np.logaddexp(log_p - np.log(2), log_q - np.log(2))
         kl_q_m = np.sum(np.exp(log_q) * (log_q - log_m))
 
         return 0.5*(kl_p_m + kl_q_m) / np.log(2)
 
+
 def load_dataset(max_length, max_n_examples, tokenize=False, max_vocab_size=2048, data_dir='/home/ishaan/data/1-billion-word-language-modeling-benchmark-r13output'):
-    print "loading dataset..."
+    print("loading dataset...")
 
     lines = []
 
     finished = False
 
-    for i in xrange(99):
-        path = data_dir+("/training-monolingual.tokenized.shuffled/news.en-{}-of-00100".format(str(i+1).zfill(5)))
+    for i in range(99):
+        path = data_dir + \
+            ("/training-monolingual.tokenized.shuffled/news.en-{}-of-00100".format(str(i+1).zfill(5)))
         with open(path, 'r') as f:
             for line in f:
                 line = line[:-1]
@@ -105,7 +114,7 @@ def load_dataset(max_length, max_n_examples, tokenize=False, max_vocab_size=2048
                 if len(line) > max_length:
                     line = line[:max_length]
 
-                lines.append(line + ( ("`",)*(max_length-len(line)) ) )
+                lines.append(line + (("`",)*(max_length-len(line))))
 
                 if len(lines) == max_n_examples:
                     finished = True
@@ -118,10 +127,10 @@ def load_dataset(max_length, max_n_examples, tokenize=False, max_vocab_size=2048
     import collections
     counts = collections.Counter(char for line in lines for char in line)
 
-    charmap = {'unk':0}
+    charmap = {'unk': 0}
     inv_charmap = ['unk']
 
-    for char,count in counts.most_common(max_vocab_size-1):
+    for char, count in counts.most_common(max_vocab_size-1):
         if char not in charmap:
             charmap[char] = len(inv_charmap)
             inv_charmap.append(char)
@@ -136,8 +145,8 @@ def load_dataset(max_length, max_n_examples, tokenize=False, max_vocab_size=2048
                 filtered_line.append('unk')
         filtered_lines.append(tuple(filtered_line))
 
-    for i in xrange(100):
-        print filtered_lines[i]
+    for i in range(100):
+        print(filtered_lines[i])
 
-    print "loaded {} lines in dataset".format(len(lines))
+    print("loaded {} lines in dataset".format(len(lines)))
     return filtered_lines, charmap, inv_charmap

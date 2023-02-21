@@ -1,21 +1,18 @@
-import os, sys
+from sklearn.preprocessing import OneHotEncoder
+import tflib.plot
+import tflib as lib
+import language_helpers
+import torch.optim as optim
+import torch.nn.functional as F
+import torch.nn as nn
+import torch.autograd as autograd
+import torch
+import numpy as np
+import time
+import os
+import sys
 sys.path.append(os.getcwd())
 
-import time
-
-import numpy as np
-
-import torch
-import torch.autograd as autograd
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
-import language_helpers
-import tflib as lib
-import tflib.plot
-
-from sklearn.preprocessing import OneHotEncoder
 
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
@@ -26,20 +23,22 @@ if use_cuda:
 # fill in the path to the extracted files here!
 DATA_DIR = './data_language'
 if len(DATA_DIR) == 0:
-    raise Exception('Please specify path to data directory in gan_language.py!')
+    raise Exception(
+        'Please specify path to data directory in gan_language.py!')
 
-BATCH_SIZE = 64 # Batch size
-ITERS = 200000 # How many iterations to train for
-SEQ_LEN = 32 # Sequence length in characters
-DIM = 512 # Model dimensionality. This is fairly slow and overfits, even on
-          # Billion Word. Consider decreasing for smaller datasets.
-CRITIC_ITERS = 10 # How many critic iterations per generator iteration. We
-                  # use 10 for the results in the paper, but 5 should work fine
-                  # as well.
-LAMBDA = 10 # Gradient penalty lambda hyperparameter.
-MAX_N_EXAMPLES = 10000000#10000000 # Max number of data examples to load. If data loading
-                          # is too slow or takes too much RAM, you can decrease
-                          # this (at the expense of having less training data).
+BATCH_SIZE = 64  # Batch size
+ITERS = 200000  # How many iterations to train for
+SEQ_LEN = 32  # Sequence length in characters
+DIM = 512  # Model dimensionality. This is fairly slow and overfits, even on
+# Billion Word. Consider decreasing for smaller datasets.
+CRITIC_ITERS = 10  # How many critic iterations per generator iteration. We
+# use 10 for the results in the paper, but 5 should work fine
+# as well.
+LAMBDA = 10  # Gradient penalty lambda hyperparameter.
+# 10000000 # Max number of data examples to load. If data loading
+MAX_N_EXAMPLES = 10000000
+# is too slow or takes too much RAM, you can decrease
+# this (at the expense of having less training data).
 
 
 lib.print_model_settings(locals().copy())
@@ -56,9 +55,11 @@ one_hot.fit(table)
 
 # ==================Definition Start======================
 
+
 def make_noise(shape, volatile=False):
     tensor = torch.randn(shape).cuda(gpu) if use_cuda else torch.randn(shape)
     return autograd.Variable(tensor, volatile)
+
 
 class ResBlock(nn.Module):
 
@@ -67,14 +68,15 @@ class ResBlock(nn.Module):
 
         self.res_block = nn.Sequential(
             nn.ReLU(True),
-            nn.Conv1d(DIM, DIM, 5, padding=2),#nn.Linear(DIM, DIM),
+            nn.Conv1d(DIM, DIM, 5, padding=2),  # nn.Linear(DIM, DIM),
             nn.ReLU(True),
-            nn.Conv1d(DIM, DIM, 5, padding=2),#nn.Linear(DIM, DIM),
+            nn.Conv1d(DIM, DIM, 5, padding=2),  # nn.Linear(DIM, DIM),
         )
 
     def forward(self, input):
         output = self.res_block(input)
         return input + (0.3*output)
+
 
 class Generator(nn.Module):
 
@@ -94,7 +96,7 @@ class Generator(nn.Module):
 
     def forward(self, noise):
         output = self.fc1(noise)
-        output = output.view(-1, DIM, SEQ_LEN) # (BATCH_SIZE, DIM, SEQ_LEN)
+        output = output.view(-1, DIM, SEQ_LEN)  # (BATCH_SIZE, DIM, SEQ_LEN)
         output = self.block(output)
         output = self.conv1(output)
         output = output.transpose(1, 2)
@@ -102,7 +104,8 @@ class Generator(nn.Module):
         output = output.contiguous()
         output = output.view(BATCH_SIZE*SEQ_LEN, -1)
         output = self.softmax(output)
-        return output.view(shape) # (BATCH_SIZE, SEQ_LEN, len(charmap))
+        return output.view(shape)  # (BATCH_SIZE, SEQ_LEN, len(charmap))
+
 
 class Discriminator(nn.Module):
 
@@ -120,7 +123,7 @@ class Discriminator(nn.Module):
         self.linear = nn.Linear(SEQ_LEN*DIM, 1)
 
     def forward(self, input):
-        output = input.transpose(1, 2) # (BATCH_SIZE, len(charmap), SEQ_LEN)
+        output = input.transpose(1, 2)  # (BATCH_SIZE, len(charmap), SEQ_LEN)
         output = self.conv1d(output)
         output = self.block(output)
         output = output.view(-1, SEQ_LEN*DIM)
@@ -128,14 +131,17 @@ class Discriminator(nn.Module):
         return output
 
 # Dataset iterator
+
+
 def inf_train_gen():
     while True:
         np.random.shuffle(lines)
-        for i in xrange(0, len(lines)-BATCH_SIZE+1, BATCH_SIZE):
+        for i in range(0, len(lines)-BATCH_SIZE+1, BATCH_SIZE):
             yield np.array(
                 [[charmap[c] for c in l] for l in lines[i:i+BATCH_SIZE]],
                 dtype='int32'
             )
+
 
 def calc_gradient_penalty(netD, real_data, fake_data):
     alpha = torch.rand(BATCH_SIZE, 1, 1)
@@ -159,6 +165,7 @@ def calc_gradient_penalty(netD, real_data, fake_data):
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * LAMBDA
     return gradient_penalty
 
+
 def generate_samples(netG):
     noise = torch.randn(BATCH_SIZE, 128)
     if use_cuda:
@@ -172,14 +179,15 @@ def generate_samples(netG):
 
     samples = np.argmax(samples, axis=2)
     decoded_samples = []
-    for i in xrange(len(samples)):
+    for i in range(len(samples)):
         decoded = []
-        for j in xrange(len(samples[i])):
+        for j in range(len(samples[i])):
             decoded.append(inv_charmap[samples[i][j]])
         decoded_samples.append(tuple(decoded))
     return decoded_samples
 
 # ==================Definition End======================
+
 
 netG = Generator()
 netD = Discriminator()
@@ -204,13 +212,16 @@ data = inf_train_gen()
 # During training we monitor JS divergence between the true & generated ngram
 # distributions for n=1,2,3,4. To get an idea of the optimal values, we
 # evaluate these statistics on a held-out set first.
-true_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines[10*BATCH_SIZE:], tokenize=False) for i in xrange(4)]
-validation_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines[:10*BATCH_SIZE], tokenize=False) for i in xrange(4)]
-for i in xrange(4):
+true_char_ngram_lms = [language_helpers.NgramLanguageModel(
+    i+1, lines[10*BATCH_SIZE:], tokenize=False) for i in range(4)]
+validation_char_ngram_lms = [language_helpers.NgramLanguageModel(
+    i+1, lines[:10*BATCH_SIZE], tokenize=False) for i in range(4)]
+for i in range(4):
     print "validation set JSD for n={}: {}".format(i+1, true_char_ngram_lms[i].js_with(validation_char_ngram_lms[i]))
-true_char_ngram_lms = [language_helpers.NgramLanguageModel(i+1, lines, tokenize=False) for i in xrange(4)]
+true_char_ngram_lms = [language_helpers.NgramLanguageModel(
+    i+1, lines, tokenize=False) for i in range(4)]
 
-for iteration in xrange(ITERS):
+for iteration in range(ITERS):
     start_time = time.time()
     ############################
     # (1) Update D network
@@ -218,10 +229,11 @@ for iteration in xrange(ITERS):
     for p in netD.parameters():  # reset requires_grad
         p.requires_grad = True  # they are set to False below in netG update
 
-    for iter_d in xrange(CRITIC_ITERS):
+    for iter_d in range(CRITIC_ITERS):
         _data = data.next()
-        data_one_hot = one_hot.transform(_data.reshape(-1, 1)).toarray().reshape(BATCH_SIZE, -1, len(charmap))
-        #print data_one_hot.shape
+        data_one_hot = one_hot.transform(
+            _data.reshape(-1, 1)).toarray().reshape(BATCH_SIZE, -1, len(charmap))
+        # print data_one_hot.shape
         real_data = torch.Tensor(data_one_hot)
         if use_cuda:
             real_data = real_data.cuda(gpu)
@@ -249,7 +261,8 @@ for iteration in xrange(ITERS):
         D_fake.backward(one)
 
         # train with gradient penalty
-        gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
+        gradient_penalty = calc_gradient_penalty(
+            netD, real_data_v.data, fake.data)
         gradient_penalty.backward()
 
         D_cost = D_fake - D_real + gradient_penalty
@@ -278,16 +291,19 @@ for iteration in xrange(ITERS):
     lib.plot.plot('tmp/lang/time', time.time() - start_time)
     lib.plot.plot('tmp/lang/train disc cost', D_cost.cpu().data.numpy())
     lib.plot.plot('tmp/lang/train gen cost', G_cost.cpu().data.numpy())
-    lib.plot.plot('tmp/lang/wasserstein distance', Wasserstein_D.cpu().data.numpy())
+    lib.plot.plot('tmp/lang/wasserstein distance',
+                  Wasserstein_D.cpu().data.numpy())
 
     if iteration % 100 == 99:
         samples = []
-        for i in xrange(10):
+        for i in range(10):
             samples.extend(generate_samples(netG))
 
-        for i in xrange(4):
-            lm = language_helpers.NgramLanguageModel(i+1, samples, tokenize=False)
-            lib.plot.plot('tmp/lang/js{}'.format(i+1), lm.js_with(true_char_ngram_lms[i]))
+        for i in range(4):
+            lm = language_helpers.NgramLanguageModel(
+                i+1, samples, tokenize=False)
+            lib.plot.plot('tmp/lang/js{}'.format(i+1),
+                          lm.js_with(true_char_ngram_lms[i]))
 
         with open('tmp/lang/samples_{}.txt'.format(iteration), 'w') as f:
             for s in samples:

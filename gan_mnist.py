@@ -1,40 +1,42 @@
-import os, sys
+import torch.optim as optim
+import torch.nn.functional as F
+import torch.nn as nn
+import torch.autograd as autograd
+import torch
+import tflib.plot
+import tflib.mnist
+import tflib.save_images
+import tflib as lib
+import sklearn.datasets
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+import time
+import os
+import sys
 sys.path.append(os.getcwd())
 
-import time
 
-import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-import sklearn.datasets
 
-import tflib as lib
-import tflib.save_images
-import tflib.mnist
-import tflib.plot
-
-import torch
-import torch.autograd as autograd
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
 if use_cuda:
     gpu = 0
 
-DIM = 64 # Model dimensionality
-BATCH_SIZE = 50 # Batch size
-CRITIC_ITERS = 5 # For WGAN and WGAN-GP, number of critic iters per gen iter
-LAMBDA = 10 # Gradient penalty lambda hyperparameter
-ITERS = 200000 # How many generator iterations to train for
-OUTPUT_DIM = 784 # Number of pixels in MNIST (28*28)
+DIM = 64  # Model dimensionality
+BATCH_SIZE = 50  # Batch size
+CRITIC_ITERS = 5  # For WGAN and WGAN-GP, number of critic iters per gen iter
+LAMBDA = 10  # Gradient penalty lambda hyperparameter
+ITERS = 200000  # How many generator iterations to train for
+OUTPUT_DIM = 784  # Number of pixels in MNIST (28*28)
 
 lib.print_model_settings(locals().copy())
 
 # ==================Definition Start======================
+
+
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
@@ -62,17 +64,18 @@ class Generator(nn.Module):
     def forward(self, input):
         output = self.preprocess(input)
         output = output.view(-1, 4*DIM, 4, 4)
-        #print output.size()
+        # print output.size()
         output = self.block1(output)
-        #print output.size()
+        # print output.size()
         output = output[:, :, :7, :7]
-        #print output.size()
+        # print output.size()
         output = self.block2(output)
-        #print output.size()
+        # print output.size()
         output = self.deconv_out(output)
         output = self.sigmoid(output)
-        #print output.size()
+        # print output.size()
         return output.view(-1, OUTPUT_DIM)
+
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -103,6 +106,7 @@ class Discriminator(nn.Module):
         out = self.output(out)
         return out.view(-1)
 
+
 def generate_image(frame, netG):
     noise = torch.randn(BATCH_SIZE, 128)
     if use_cuda:
@@ -119,15 +123,19 @@ def generate_image(frame, netG):
         'tmp/mnist/samples_{}.png'.format(frame)
     )
 
+
 # Dataset iterator
 train_gen, dev_gen, test_gen = lib.mnist.load(BATCH_SIZE, BATCH_SIZE)
+
+
 def inf_train_gen():
     while True:
-        for images,targets in train_gen():
+        for images, targets in train_gen():
             yield images
 
+
 def calc_gradient_penalty(netD, real_data, fake_data):
-    #print real_data.size()
+    # print real_data.size()
     alpha = torch.rand(BATCH_SIZE, 1)
     alpha = alpha.expand(real_data.size())
     alpha = alpha.cuda(gpu) if use_cuda else alpha
@@ -150,6 +158,7 @@ def calc_gradient_penalty(netD, real_data, fake_data):
 
 # ==================Definition End======================
 
+
 netG = Generator()
 netD = Discriminator()
 print netG
@@ -170,7 +179,7 @@ if use_cuda:
 
 data = inf_train_gen()
 
-for iteration in xrange(ITERS):
+for iteration in range(ITERS):
     start_time = time.time()
     ############################
     # (1) Update D network
@@ -178,7 +187,7 @@ for iteration in xrange(ITERS):
     for p in netD.parameters():  # reset requires_grad
         p.requires_grad = True  # they are set to False below in netG update
 
-    for iter_d in xrange(CRITIC_ITERS):
+    for iter_d in range(CRITIC_ITERS):
         _data = data.next()
         real_data = torch.Tensor(_data)
         if use_cuda:
@@ -205,7 +214,8 @@ for iteration in xrange(ITERS):
         D_fake.backward(one)
 
         # train with gradient penalty
-        gradient_penalty = calc_gradient_penalty(netD, real_data_v.data, fake.data)
+        gradient_penalty = calc_gradient_penalty(
+            netD, real_data_v.data, fake.data)
         gradient_penalty.backward()
 
         D_cost = D_fake - D_real + gradient_penalty
@@ -234,12 +244,13 @@ for iteration in xrange(ITERS):
     lib.plot.plot('tmp/mnist/time', time.time() - start_time)
     lib.plot.plot('tmp/mnist/train disc cost', D_cost.cpu().data.numpy())
     lib.plot.plot('tmp/mnist/train gen cost', G_cost.cpu().data.numpy())
-    lib.plot.plot('tmp/mnist/wasserstein distance', Wasserstein_D.cpu().data.numpy())
+    lib.plot.plot('tmp/mnist/wasserstein distance',
+                  Wasserstein_D.cpu().data.numpy())
 
     # Calculate dev loss and generate samples every 100 iters
     if iteration % 100 == 99:
         dev_disc_costs = []
-        for images,_ in dev_gen():
+        for images, _ in dev_gen():
             imgs = torch.Tensor(images)
             if use_cuda:
                 imgs = imgs.cuda(gpu)
