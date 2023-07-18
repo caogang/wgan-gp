@@ -152,8 +152,8 @@ def calc_gradient_penalty(netD, real_data, fake_data):
 
 netG = Generator()
 netD = Discriminator()
-print netG
-print netD
+print(netG)
+print(netD)
 
 if use_cuda:
     netD = netD.cuda(gpu)
@@ -170,7 +170,7 @@ if use_cuda:
 
 data = inf_train_gen()
 
-for iteration in xrange(ITERS):
+for iteration in range(ITERS):
     start_time = time.time()
     ############################
     # (1) Update D network
@@ -178,7 +178,7 @@ for iteration in xrange(ITERS):
     for p in netD.parameters():  # reset requires_grad
         p.requires_grad = True  # they are set to False below in netG update
 
-    for iter_d in xrange(CRITIC_ITERS):
+    for iter_d in range(CRITIC_ITERS):
         _data = data.next()
         real_data = torch.Tensor(_data)
         if use_cuda:
