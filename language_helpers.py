@@ -24,7 +24,7 @@ class NgramLanguageModel(object):
     def ngrams(self):
         n = self._n
         for sample in self._samples:
-            for i in xrange(len(sample)-n+1):
+            for i in range(len(sample)-n+1):
                 yield sample[i:i+n]
 
     def unique_ngrams(self):
@@ -86,13 +86,13 @@ class NgramLanguageModel(object):
         return 0.5*(kl_p_m + kl_q_m) / np.log(2)
 
 def load_dataset(max_length, max_n_examples, tokenize=False, max_vocab_size=2048, data_dir='/home/ishaan/data/1-billion-word-language-modeling-benchmark-r13output'):
-    print "loading dataset..."
+    print("loading dataset...")
 
     lines = []
 
     finished = False
 
-    for i in xrange(99):
+    for i in range(99):
         path = data_dir+("/training-monolingual.tokenized.shuffled/news.en-{}-of-00100".format(str(i+1).zfill(5)))
         with open(path, 'r') as f:
             for line in f:
@@ -136,8 +136,8 @@ def load_dataset(max_length, max_n_examples, tokenize=False, max_vocab_size=2048
                 filtered_line.append('unk')
         filtered_lines.append(tuple(filtered_line))
 
-    for i in xrange(100):
-        print filtered_lines[i]
+    for i in range(100):
+        print(filtered_lines[i])
 
-    print "loaded {} lines in dataset".format(len(lines))
+    print("loaded {} lines in dataset").format(len(lines))
     return filtered_lines, charmap, inv_charmap
